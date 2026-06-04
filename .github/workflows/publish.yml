@@ -1,0 +1,49 @@
+# Publish workflow for keel packages.
+# Publishes @camelburrito/cf-utils and @camelburrito/ratchet-kit to GitHub Packages
+# when a version tag is pushed (e.g., `git tag cf-utils-v0.2.0 && git push --tags`).
+#
+# Per-package tag prefixes let you ship them independently:
+#   cf-utils-v*.*.*    -> publish packages/cf-utils
+#   ratchet-kit-v*.*.* -> publish packages/ratchet-kit
+
+name: Publish Packages
+
+on:
+  push:
+    tags:
+      - 'cf-utils-v*.*.*'
+      - 'ratchet-kit-v*.*.*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@camelburrito'
+
+      - name: Determine package dir from tag
+        id: pkg
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          case "$TAG" in
+            cf-utils-v*)    echo "dir=packages/cf-utils"    >> "$GITHUB_OUTPUT" ;;
+            ratchet-kit-v*) echo "dir=packages/ratchet-kit" >> "$GITHUB_OUTPUT" ;;
+            *) echo "Unknown tag prefix: $TAG"; exit 1 ;;
+          esac
+
+      - name: Install + build + test + publish
+        working-directory: ${{ steps.pkg.outputs.dir }}
+        run: |
+          npm ci
+          npm run build
+          npm test
+          npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

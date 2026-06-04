@@ -1,0 +1,36 @@
+{
+  "name": "@camelburrito/cf-utils",
+  "version": "0.1.0",
+  "description": "Agnostic Cloud Functions utilities: PII-redacting logger, writeWithAudit, rate limit, idempotency, validation, wrapHandler.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build && npm run test"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/camelburrito/keel.git",
+    "directory": "packages/cf-utils"
+  },
+  "peerDependencies": {
+    "firebase-admin": "^12.0.0",
+    "firebase-functions": "^5.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "vitest": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": ["firebase", "cloud-functions", "pii", "logger", "audit", "keel"],
+  "license": "UNLICENSED",
+  "private": false
+}

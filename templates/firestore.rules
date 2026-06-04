@@ -1,0 +1,23 @@
+rules_version = '2';
+
+// Deny-all baseline. Add allowlist entries per collection as you go.
+// Every new collection MUST also gain a describe() block in firestore.rules.test.ts
+// — enforced by the `no-firestore-collection-without-rule-test` ratchet.
+// See playbook/09-firebase-stack.md.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // TODO: add collection-specific match blocks here.
+    // Example:
+    // match /users/{userId} {
+    //   allow read: if request.auth != null && request.auth.uid == userId;
+    //   allow write: if false; // writes via Cloud Functions only
+    // }
+
+    // Default deny — everything else is rejected.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

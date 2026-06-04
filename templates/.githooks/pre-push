@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Pre-push hook — runs the full local CI mirror via scripts/ci-local.sh.
+# Path-filters expensive native (iOS/Android) builds so non-native pushes pay 0 cost.
+# Skipped during merge/rebase/cherry-pick.
+# See playbook/03-ci-cd.md.
+
+set -euo pipefail
+
+# Skip during merge/rebase/cherry-pick.
+if [ -f .git/MERGE_HEAD ] || [ -f .git/REBASE_HEAD ] || [ -f .git/CHERRY_PICK_HEAD ]; then
+  echo "[pre-push] skipping during merge/rebase/cherry-pick"
+  exit 0
+fi
+
+# Detect whether the push touches native platforms.
+# TODO: customize this regex once native targets exist.
+NATIVE_RE='^(apple|android|packages|shared)/|\.swift$|\.kt$'
+
+# Look at staged-to-push commits' file list.
+PUSH_FILES=$(git diff --name-only @{u}..HEAD 2>/dev/null || git diff --name-only HEAD~1..HEAD)
+
+if echo "$PUSH_FILES" | grep -qE "$NATIVE_RE"; then
+  echo "[pre-push] native changes detected — running full ci-local.sh"
+  bash scripts/ci-local.sh
+else
+  echo "[pre-push] no native changes — running ci-local.sh --skip-native"
+  bash scripts/ci-local.sh --skip-native
+fi
+
+echo "[pre-push] OK"

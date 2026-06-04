@@ -1,0 +1,14 @@
+# Copy to .npmrc in each downstream project so npm can pull @camelburrito/*
+# packages from GitHub Packages. The PAT needs `read:packages` scope.
+# Never commit .npmrc — it's in .gitignore.
+#
+# Wire it via env var:
+#   export GITHUB_PACKAGES_PAT=ghp_xxxx
+#   envsubst < .npmrc.template > .npmrc
+#
+# Or in CI:
+#   echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_PACKAGES_PAT }}" > .npmrc
+#   echo "@camelburrito:registry=https://npm.pkg.github.com" >> .npmrc
+
+@camelburrito:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_PACKAGES_PAT}

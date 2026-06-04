@@ -1,0 +1,26 @@
+{
+  "_comment": "Source of truth for all user-facing strings. Codegen emits per-platform files via scripts/gen-strings.mjs. Resolver chain: Member.locale -> Household.locale -> device -> en-US. See keel playbook 08-string-catalog-i18n.md.",
+  "app": {
+    "name": "<APP>",
+    "tagline": "TODO"
+  },
+  "common": {
+    "loading": "Loading…",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "retry": "Try again",
+    "back": "Back",
+    "next": "Next",
+    "close": "Close"
+  },
+  "errors": {
+    "_comment": "CF wire codes route through these keys via cfErrorHandler. Add a new entry when you add a new HttpsError code.",
+    "generic": "Something went wrong. Please try again.",
+    "network": "Network problem. Check your connection.",
+    "unauthorized": "You don't have permission to do that.",
+    "not-found": "We couldn't find that.",
+    "invalid-argument": "That doesn't look right. Please check and try again."
+  }
+}

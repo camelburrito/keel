@@ -1,0 +1,72 @@
+# Callable deploy workflow. Wrappers in staging-deploy.yml and prod-deploy.yml
+# call this with per-env inputs. See playbook/11-staging-prod-environments.md.
+#
+# TODO when adopting:
+#   1. Replace <APP> with your app slug
+#   2. Wire the GCP_SA_KEY_<ENV> secrets in GitHub repo settings
+#   3. Confirm the codebases array matches firebase.json (e.g., default + <external>)
+
+name: _deploy
+
+on:
+  workflow_call:
+    inputs:
+      project:
+        description: "Firebase project ID"
+        required: true
+        type: string
+      environment:
+        description: "staging | prod"
+        required: true
+        type: string
+      always_deploy:
+        description: "Skip paths-filter and deploy unconditionally (cumulative-state release cuts)"
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      GCP_SA_KEY:
+        required: true
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      client: ${{ steps.filter.outputs.client }}
+      server: ${{ steps.filter.outputs.server }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # CRITICAL: paths-filter@v3 needs full history to diff event.before..event.sha.
+          # Defended by no-paths-filter-without-fetch-depth-zero ratchet.
+          fetch-depth: 0
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            client:
+              - 'src/**'
+              - 'public/**'
+              - 'package.json'
+              - 'package-lock.json'
+            server:
+              - 'functions/**'
+              - 'shared-cf-utils/**'
+
+  deploy-client:
+    needs: detect-changes
+    if: ${{ inputs.always_deploy || needs.detect-changes.outputs.client == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # TODO: client deploy steps (npm ci, build, firebase deploy --only hosting)
+      - run: echo "TODO client deploy for ${{ inputs.project }}"
+
+  deploy-server:
+    needs: detect-changes
+    if: ${{ inputs.always_deploy || needs.detect-changes.outputs.server == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # TODO: server deploy steps (npm ci, build, firebase deploy --only functions)
+      - run: echo "TODO server deploy for ${{ inputs.project }}"

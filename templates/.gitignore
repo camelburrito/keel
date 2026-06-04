@@ -1,0 +1,23 @@
+node_modules/
+.DS_Store
+*.log
+dist/
+build/
+.env
+.env.local
+*.tgz
+.npmrc
+
+# Firebase
+.firebase/
+firebase-debug.log
+ui-debug.log
+firestore-debug.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+Thumbs.db
