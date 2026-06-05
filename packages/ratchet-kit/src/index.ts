@@ -64,6 +64,12 @@ export type {
 export { ratchetListPrecommitVsWorkflow, extractRatchetPaths } from './ratchets/ratchet-list-precommit-vs-workflow';
 export type { RatchetListPrecommitVsWorkflowConfig } from './ratchets/ratchet-list-precommit-vs-workflow';
 
+// v0.6 addition — the design-system completeness gate. `var(--xyz)` references
+// in consumer CSS must resolve to tokens declared in the source-of-truth files.
+// Catches typo'd token names and references to tokens that were never added.
+export { noUndefinedTokens, extractDefinedTokens, extractReferencedTokens } from './ratchets/no-undefined-tokens';
+export type { NoUndefinedTokensConfig } from './ratchets/no-undefined-tokens';
+
 // Future versions graduate more ratchets as patterns prove portable across
 // downstream products. Project-specific ratchets (e.g., `no-legacy-kid-cta-token`
 // in chorz) live in the project's own src/__tests__/ — see

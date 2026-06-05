@@ -25,6 +25,11 @@ import {
   extractRatchetPaths,
   ratchetListPrecommitVsWorkflow,
 } from './ratchet-list-precommit-vs-workflow';
+import {
+  extractDefinedTokens,
+  extractReferencedTokens,
+  noUndefinedTokens,
+} from './no-undefined-tokens';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -903,6 +908,325 @@ describe('ratchetListPrecommitVsWorkflow', () => {
           ratchetPathRegex: /tests\/check-[\w-]+\.sh/g,
         }),
       ).not.toThrow();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// v0.6 addition — noUndefinedTokens
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('extractDefinedTokens', () => {
+  it('extracts --token-name: declarations regardless of selector', () => {
+    const css = `:root {
+  --color-primary: #f53d6b;
+  --space-md: 16px;
+}
+.dark {
+  --color-primary: #ff6b88;
+}
+`;
+    const defined = extractDefinedTokens(css);
+    expect(defined).toEqual(new Set(['--color-primary', '--space-md']));
+  });
+
+  it('ignores non-custom-property declarations', () => {
+    const css = `.x { color: red; font-size: 14px; --my-token: 1px; }`;
+    // The non-CP declarations land off-line-start so the gm regex skips them,
+    // but the --my-token IS at line start (after the open-brace it isn't, but
+    // the chorz precedent uses gm anchoring — verify expected shape).
+    const defined = extractDefinedTokens(css);
+    expect(defined.has('--my-token')).toBe(false); // not at line start
+    expect(defined).not.toContain('color');
+    expect(defined).not.toContain('font-size');
+  });
+
+  it('extracts custom properties at line start with leading whitespace', () => {
+    const css = `  --leading-space-ok: 1px;
+\t--tab-prefix-ok: 2px;
+`;
+    expect(extractDefinedTokens(css)).toEqual(
+      new Set(['--leading-space-ok', '--tab-prefix-ok']),
+    );
+  });
+});
+
+describe('extractReferencedTokens', () => {
+  it('extracts simple var(--name)', () => {
+    const css = `.x { color: var(--color-primary); }`;
+    const refs = extractReferencedTokens(css);
+    expect(refs).toEqual([{ name: '--color-primary', line: 1 }]);
+  });
+
+  it('extracts var(--name, fallback) — ignores fallback', () => {
+    const css = `.x { color: var(--color-primary, #f53d6b); }`;
+    const refs = extractReferencedTokens(css);
+    expect(refs).toEqual([{ name: '--color-primary', line: 1 }]);
+  });
+
+  it('extracts refs nested inside color-mix / rgb / calc', () => {
+    const css = `.x {
+  color: color-mix(in srgb, var(--color-primary) 50%, var(--color-secondary));
+  width: calc(var(--space-md) * 2);
+}`;
+    const refs = extractReferencedTokens(css);
+    expect(refs.map((r) => r.name)).toEqual([
+      '--color-primary',
+      '--color-secondary',
+      '--space-md',
+    ]);
+  });
+
+  it('tracks 1-indexed line numbers in source order', () => {
+    const css = `.x {
+  color: var(--a);
+}
+.y {
+  color: var(--b);
+  background: var(--c);
+}`;
+    const refs = extractReferencedTokens(css);
+    expect(refs).toEqual([
+      { name: '--a', line: 2 },
+      { name: '--b', line: 5 },
+      { name: '--c', line: 6 },
+    ]);
+  });
+
+  it('returns empty array when no var(--) references present', () => {
+    expect(extractReferencedTokens(`.x { color: red; }`)).toEqual([]);
+  });
+});
+
+describe('noUndefinedTokens', () => {
+  function seedTokenRepo(
+    root: string,
+    tokens: string,
+    consumers: Record<string, string>,
+  ): void {
+    mkdirSync(join(root, 'ui'), { recursive: true });
+    writeFileSync(join(root, 'ui/tokens.generated.css'), tokens);
+    for (const [relPath, content] of Object.entries(consumers)) {
+      const fullPath = join(root, relPath);
+      mkdirSync(join(fullPath, '..'), { recursive: true });
+      writeFileSync(fullPath, content);
+    }
+  }
+
+  it('passes when every var(--) reference resolves to a defined token', () => {
+    const root = makeTmpRepo();
+    try {
+      seedTokenRepo(
+        root,
+        `:root {\n  --color-primary: #f53d6b;\n  --space-md: 16px;\n}`,
+        {
+          'features/Button.css': `.btn { color: var(--color-primary); padding: var(--space-md); }`,
+        },
+      );
+      expect(() =>
+        noUndefinedTokens({
+          consumerScanRoot: root,
+          tokenSourceFiles: [join(root, 'ui/tokens.generated.css')],
+          ignoredFiles: new Set(['ui/tokens.generated.css']),
+        }),
+      ).not.toThrow();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('throws when a consumer references an undefined token', () => {
+    const root = makeTmpRepo();
+    try {
+      seedTokenRepo(
+        root,
+        `:root {\n  --color-primary: #f53d6b;\n}`,
+        {
+          'features/Button.css': `.btn { color: var(--colr-primary); }`,
+        },
+      );
+      expect(() =>
+        noUndefinedTokens({
+          consumerScanRoot: root,
+          tokenSourceFiles: [join(root, 'ui/tokens.generated.css')],
+          ignoredFiles: new Set(['ui/tokens.generated.css']),
+        }),
+      ).toThrow(/references undefined token --colr-primary/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('merges defined-set across multiple token source files', () => {
+    const root = makeTmpRepo();
+    try {
+      mkdirSync(join(root, 'ui'));
+      writeFileSync(
+        join(root, 'ui/tokens.generated.css'),
+        `:root {\n  --color-primary: #f53d6b;\n}`,
+      );
+      writeFileSync(
+        join(root, 'ui/tokens.overrides.css'),
+        `.dark {\n  --color-surface: #111;\n}`,
+      );
+      writeFileSync(
+        join(root, 'Button.css'),
+        `.btn { color: var(--color-primary); background: var(--color-surface); }`,
+      );
+      expect(() =>
+        noUndefinedTokens({
+          consumerScanRoot: root,
+          tokenSourceFiles: [
+            join(root, 'ui/tokens.generated.css'),
+            join(root, 'ui/tokens.overrides.css'),
+          ],
+          ignoredFiles: new Set([
+            'ui/tokens.generated.css',
+            'ui/tokens.overrides.css',
+          ]),
+        }),
+      ).not.toThrow();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('honors runtimeInjectedPrefixes (e.g., Tailwind --tw-*)', () => {
+    const root = makeTmpRepo();
+    try {
+      seedTokenRepo(
+        root,
+        `:root {\n  --color-primary: #f53d6b;\n}`,
+        {
+          'features/Button.css': `.btn { color: var(--tw-ring-color); border: var(--color-primary); }`,
+        },
+      );
+      expect(() =>
+        noUndefinedTokens({
+          consumerScanRoot: root,
+          tokenSourceFiles: [join(root, 'ui/tokens.generated.css')],
+          ignoredFiles: new Set(['ui/tokens.generated.css']),
+          runtimeInjectedPrefixes: ['--tw-'],
+        }),
+      ).not.toThrow();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('throws when tokenSourceFiles is empty', () => {
+    expect(() =>
+      noUndefinedTokens({
+        consumerScanRoot: '/tmp',
+        tokenSourceFiles: [],
+      }),
+    ).toThrow(/must contain at least one file/);
+  });
+
+  it('throws when token source has zero --token: declarations', () => {
+    const root = makeTmpRepo();
+    try {
+      mkdirSync(join(root, 'ui'));
+      writeFileSync(
+        join(root, 'ui/tokens.generated.css'),
+        `/* empty placeholder */`,
+      );
+      expect(() =>
+        noUndefinedTokens({
+          consumerScanRoot: root,
+          tokenSourceFiles: [join(root, 'ui/tokens.generated.css')],
+        }),
+      ).toThrow(/contained zero --token-name: declarations/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('respects ignoredDirs (skips node_modules, __tests__ by default)', () => {
+    const root = makeTmpRepo();
+    try {
+      seedTokenRepo(
+        root,
+        `:root {\n  --color-primary: #f53d6b;\n}`,
+        {
+          'features/Button.css': `.btn { color: var(--color-primary); }`,
+        },
+      );
+      // Add a __tests__ file that REFERENCES an undefined token — should be
+      // ignored by default.
+      mkdirSync(join(root, '__tests__'));
+      writeFileSync(
+        join(root, '__tests__/fixture.css'),
+        `.fixture { color: var(--undefined-fixture-token); }`,
+      );
+      expect(() =>
+        noUndefinedTokens({
+          consumerScanRoot: root,
+          tokenSourceFiles: [join(root, 'ui/tokens.generated.css')],
+          ignoredFiles: new Set(['ui/tokens.generated.css']),
+        }),
+      ).not.toThrow();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('honors custom consumerExtensions (e.g., .module.css only)', () => {
+    const root = makeTmpRepo();
+    try {
+      mkdirSync(join(root, 'ui'));
+      writeFileSync(
+        join(root, 'ui/tokens.generated.css'),
+        `:root {\n  --color-primary: #f53d6b;\n}`,
+      );
+      // Plain .css with undefined token — should be SKIPPED if we scan only .module.css.
+      writeFileSync(
+        join(root, 'plain.css'),
+        `.x { color: var(--undefined-in-plain); }`,
+      );
+      // .module.css with defined token — should be checked.
+      writeFileSync(
+        join(root, 'Button.module.css'),
+        `.btn { color: var(--color-primary); }`,
+      );
+      expect(() =>
+        noUndefinedTokens({
+          consumerScanRoot: root,
+          tokenSourceFiles: [join(root, 'ui/tokens.generated.css')],
+          ignoredFiles: new Set(['ui/tokens.generated.css']),
+          consumerExtensions: ['.module.css'],
+        }),
+      ).not.toThrow();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('reports file path + line + token name in error message', () => {
+    const root = makeTmpRepo();
+    try {
+      seedTokenRepo(
+        root,
+        `:root {\n  --color-primary: #f53d6b;\n}`,
+        {
+          'features/Button.css': `.btn {\n  color: red;\n  background: var(--missing-token);\n}`,
+        },
+      );
+      let caught: Error | null = null;
+      try {
+        noUndefinedTokens({
+          consumerScanRoot: root,
+          tokenSourceFiles: [join(root, 'ui/tokens.generated.css')],
+          ignoredFiles: new Set(['ui/tokens.generated.css']),
+        });
+      } catch (e) {
+        caught = e as Error;
+      }
+      expect(caught).not.toBeNull();
+      expect(caught!.message).toContain('features/Button.css:3');
+      expect(caught!.message).toContain('--missing-token');
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
