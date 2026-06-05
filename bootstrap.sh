@@ -112,6 +112,17 @@ git init -b main >/dev/null
 # subsequent commits run hooks normally.
 git add .
 git config core.hooksPath .githooks
+
+# Set a local-repo git identity ONLY if no identity is configured globally.
+# Lets the initial commit succeed on machines where the user hasn't run
+# `git config --global user.email/user.name` yet (fresh CI runners, fresh
+# Linux dev environments). The user's first real commit later will override
+# this placeholder naturally via their own global config.
+if ! git config user.email >/dev/null 2>&1; then
+  git config user.email "bootstrap@keel.local"
+  git config user.name "Keel Bootstrap"
+fi
+
 git commit -m "Initial bootstrap from keel" --no-verify >/dev/null
 
 if [[ "$NO_INSTALL" -eq 1 ]]; then
