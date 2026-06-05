@@ -29,7 +29,16 @@ KEEL_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
 
 PROJECT_DIR="$TARGET_DIR/$PROJECT_NAME"
 
-# Pre-flight checks
+# Pre-flight: project name must be sed-safe / shell-safe. Lowercase letters,
+# digits, hyphens; must start with a letter. Rejects `/`, `&`, `\`, `$`, and
+# whitespace that would break the sed substitution downstream.
+if [[ ! "$PROJECT_NAME" =~ ^[a-z][a-z0-9-]*$ ]]; then
+  echo "ERROR: project-name must match ^[a-z][a-z0-9-]*\$ (lowercase letters, digits, hyphens; starts with a letter)." >&2
+  echo "  Got: $PROJECT_NAME" >&2
+  exit 1
+fi
+
+# Pre-flight: PAT required for npm install of @camelburrito/* packages.
 if [[ -z "${GITHUB_PACKAGES_PAT:-}" ]]; then
   echo "ERROR: GITHUB_PACKAGES_PAT env var is not set." >&2
   echo "" >&2
@@ -67,12 +76,14 @@ chmod +x "$PROJECT_DIR/scripts/"*.sh         2>/dev/null || true
 chmod +x "$PROJECT_DIR/scripts/"*.mjs        2>/dev/null || true
 chmod +x "$PROJECT_DIR/scripts/"*.py         2>/dev/null || true
 
-# 3. Replace <APP> placeholders in templates with the project name
+# 3. Replace <APP> placeholders in templates with the project name.
+# Extensions: every file type in templates/ that currently carries <APP>.
+# `.py` covers scripts/merge-coverage.py.
 echo "[keel] Replacing <APP> placeholders with '$PROJECT_NAME'"
 find "$PROJECT_DIR" -type f \
   \( -name '*.md' -o -name '*.json' -o -name '*.yml' -o -name '*.yaml' \
      -o -name '*.sh' -o -name '*.example' -o -name '*.template' \
-     -o -name '*.html' -o -name '*.tsx' -o -name '*.ts' \) \
+     -o -name '*.html' -o -name '*.tsx' -o -name '*.ts' -o -name '*.py' \) \
   -exec sed -i.bak "s/<APP>/$PROJECT_NAME/g" {} +
 find "$PROJECT_DIR" -name '*.bak' -delete
 
@@ -81,10 +92,13 @@ cd "$PROJECT_DIR"
 git init -b main >/dev/null
 
 # Stage everything and create an initial commit so the hook wire-up takes
-# effect on the next commit.
+# effect on the NEXT commit. The initial commit itself uses --no-verify
+# because the template pre-commit hook runs `npm run tokens:check` etc.,
+# and `node_modules/` doesn't exist yet (npm install runs below). All
+# subsequent commits run hooks normally.
 git add .
 git config core.hooksPath .githooks
-git commit -m "Initial bootstrap from keel" --allow-empty >/dev/null
+git commit -m "Initial bootstrap from keel" --no-verify >/dev/null
 
 # 5. Write .npmrc bound to the PAT
 cat > .npmrc <<EOF
