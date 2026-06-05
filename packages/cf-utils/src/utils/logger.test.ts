@@ -1,13 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Silence the underlying firebase-functions logger; spy on the call args.
-const fnLogger = {
+// vi.mock is hoisted to top of file before any const definitions run, so the
+// factory body has to be self-contained. Use vi.hoisted to share the mock
+// object between the factory and the test assertions below.
+const fnLogger = vi.hoisted(() => ({
   log: vi.fn(),
   info: vi.fn(),
   warn: vi.fn(),
   error: vi.fn(),
   debug: vi.fn(),
-};
+}));
 vi.mock('firebase-functions/logger', () => fnLogger);
 
 import { logger, redact, BARE_FIREBASE_UID_RE } from './logger';

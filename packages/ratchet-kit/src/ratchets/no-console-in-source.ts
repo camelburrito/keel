@@ -21,7 +21,8 @@ const LINE_DISABLE_RE = /\/\/\s*eslint-disable-next-line\s+no-console\s+--\s+\S/
 
 /**
  * Count `console.*` call sites NOT covered by a valid disable directive.
- * - File-level disable (`/* eslint-disable no-console -- <rationale> */`) suppresses all sites.
+ * - File-level disable (`eslint-disable no-console -- <rationale>` in a block
+ *   comment) suppresses all sites in the file.
  * - Line-level disable on the IMMEDIATELY preceding line suppresses that site.
  * - Disables WITHOUT a `-- <rationale>` segment are NOT honored.
  */
