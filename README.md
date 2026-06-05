@@ -43,4 +43,4 @@ When chorz (or any reference project) adds a significant new architecture (notif
 
 ## Status
 
-Bootstrapped 2026-06-04. First full playbook entry drafted: `05-observability-pii.md` (🟢). Next candidates: `02-design-system.md`, `07-ratchet-framework.md`. See [docs/playbook/00-index.md](docs/playbook/00-index.md) for the full table of contents and per-entry status.
+Bootstrapped 2026-06-04. **All 11 playbook entries 🟢 drafted** (01..11). Pilot full entry: `05-observability-pii.md`. Next steps: extract `@camelburrito/cf-utils` from chorz's `shared-cf-utils/`, extract `@camelburrito/ratchet-kit` from chorz's `_ratchetHelpers.ts` + `no-*.test.ts`, then publish v0.1.0 of each to GitHub Packages. See [docs/playbook/00-index.md](docs/playbook/00-index.md) for the full table of contents and per-entry status.
