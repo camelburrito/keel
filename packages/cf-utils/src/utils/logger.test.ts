@@ -137,3 +137,138 @@ describe('logger interface', () => {
     expect(fnLogger.debug).toHaveBeenCalled();
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// v0.3 expansion — redact pipeline depth + edge cases
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('BARE_FIREBASE_UID_RE — boundary cases', () => {
+  it('rejects 27-char strings (under-length)', () => {
+    expect('abc123def456ghi789jkl012mn0'.match(BARE_FIREBASE_UID_RE)).toBeNull();
+  });
+
+  it('rejects 29-char strings (over-length)', () => {
+    expect('abc123def456ghi789jkl012mn03X'.match(BARE_FIREBASE_UID_RE)).toBeNull();
+  });
+
+  it('matches mixed-case 28-char base62 (Google OAuth uid shape)', () => {
+    expect('GTAt9hZxKbWqPmRsLvJyCxFwNbVe'.match(BARE_FIREBASE_UID_RE)).not.toBeNull();
+  });
+
+  it('rejects strings containing hyphen / underscore', () => {
+    // Word-boundary `\b` already excludes these, but verify explicitly.
+    expect('abc123def-ghi789jkl012mno3'.match(BARE_FIREBASE_UID_RE)).toBeNull();
+    expect('abc123def_ghi789jkl012mno3'.match(BARE_FIREBASE_UID_RE)).toBeNull();
+  });
+});
+
+describe('redact — Firestore-path coverage across default collections', () => {
+  it('redacts /users/{uid}', () => {
+    const result = redact('/users/abc12345defXYZ/profile') as string;
+    expect(result).toContain('users/[REDACTED_ID]');
+  });
+
+  it('redacts /households/{hh}', () => {
+    const result = redact('/households/h-12345abcDEF') as string;
+    expect(result).toContain('households/[REDACTED_ID]');
+  });
+
+  it('redacts /audit/{a}', () => {
+    const result = redact('/audit/a-12345abcDEF') as string;
+    expect(result).toContain('audit/[REDACTED_ID]');
+  });
+
+  it('honors configureLogger.firestoreCollectionNames extension', () => {
+    configureLogger({ firestoreCollectionNames: ['users', 'households', 'members', 'audit', 'chores'] });
+    const result = redact('/chores/c-12345abcDEF') as string;
+    expect(result).toContain('chores/[REDACTED_ID]');
+  });
+});
+
+describe('redact — labeled-ID coverage across documented labels', () => {
+  it('redacts memberId', () => {
+    const result = redact('memberId: "abc12345defXYZ_lng"') as string;
+    expect(result).toContain('memberId');
+    expect(result).toContain('[REDACTED_ID]');
+    expect(result).not.toContain('abc12345defXYZ_lng');
+  });
+
+  it('redacts inviteId', () => {
+    const result = redact('inviteId="abc12345defXYZ_lng"') as string;
+    expect(result).toContain('[REDACTED_ID]');
+  });
+
+  it('redacts watchToken', () => {
+    const result = redact('watchToken: "abc12345defXYZ_lng"') as string;
+    expect(result).toContain('[REDACTED_ID]');
+  });
+
+  it('redacts pure-letter values are NOT touched (requires digit/_/-)', () => {
+    // 'AbcDefGhIjKlMnOpQrStUvWx' is 24-char pure letters — no digit/_/-, so
+    // LABELED_ID_RE's guard skips it. Verifies the guard is wired.
+    const result = redact('userId: "AbcDefGhIjKlMnOpQrStUvWx"') as string;
+    expect(result).toContain('AbcDefGhIjKlMnOpQrStUvWx');
+  });
+});
+
+describe('redact — object input', () => {
+  it('redacts bare 28-char UIDs inside object string values', () => {
+    // For object inputs, JSON.stringify escapes quotes, which breaks
+    // LABELED_ID_RE's pattern matching. The BARE_FIREBASE_UID_RE (28-char
+    // alphanum boundary) is the layer that survives the escape — verify it
+    // catches a clean 28-char UID embedded in an object property.
+    const uid = 'AbCdEfGhIjKlMnOpQrStUvWxYz12'; // 28 chars
+    const result = redact({
+      message: `user ${uid} did X`,
+      other: 'ok',
+    }) as Record<string, unknown>;
+    expect(JSON.stringify(result)).toContain('[REDACTED_ID]');
+    expect(JSON.stringify(result)).not.toContain(uid);
+  });
+
+  it('handles arrays containing 28-char UIDs', () => {
+    const uid = 'AbCdEfGhIjKlMnOpQrStUvWxYz12';
+    const result = redact([
+      `event by ${uid}`,
+      'ok',
+    ]) as string[];
+    expect(JSON.stringify(result)).toContain('[REDACTED_ID]');
+    expect(JSON.stringify(result)).not.toContain(uid);
+  });
+
+  it('passes primitives through unchanged', () => {
+    expect(redact(42)).toBe(42);
+    expect(redact(true)).toBe(true);
+    expect(redact(null)).toBe(null);
+  });
+});
+
+describe('redact — OAuth scrub layer (instrument integration)', () => {
+  it('scrubs refresh_token inside log-object args', () => {
+    const result = redact({ refresh_token: 'SECRET_VALUE', other: 'ok' }) as Record<string, unknown>;
+    expect(JSON.stringify(result)).toContain('[REDACTED_OAUTH_TOKEN]');
+    expect(JSON.stringify(result)).not.toContain('SECRET_VALUE');
+  });
+
+  it('scrubs access_token inside nested config.data', () => {
+    const result = redact({
+      config: { data: { access_token: 'AT_SECRET' } },
+    }) as Record<string, unknown>;
+    expect(JSON.stringify(result)).toContain('[REDACTED_OAUTH_TOKEN]');
+    expect(JSON.stringify(result)).not.toContain('AT_SECRET');
+  });
+});
+
+describe('logger.error with err object', () => {
+  it('routes error object through redact pipeline', () => {
+    logger.error('something failed', {
+      uid: 'AbCdEfGhIjKlMnOpQrStUvWxYz12',
+      refresh_token: 'OAUTH_SECRET',
+    });
+    expect(fnLogger.error).toHaveBeenCalled();
+    const args = fnLogger.error.mock.calls[0];
+    const stringified = JSON.stringify(args);
+    expect(stringified).toContain('[REDACTED_OAUTH_TOKEN]');
+    expect(stringified).not.toContain('OAUTH_SECRET');
+  });
+});
