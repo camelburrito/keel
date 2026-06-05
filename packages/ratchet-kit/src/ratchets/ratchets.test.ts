@@ -16,6 +16,18 @@ import { countBareFontPropertyInCss } from './no-bare-font-property-in-css';
 import { countBareViewportEmInCss } from './no-bare-viewport-em-in-css';
 import { _internal as e2eInternal } from './no-stale-e2e-selectors';
 import { findOffendersInWorkflow } from './no-paths-filter-without-fetch-depth-zero';
+import {
+  countBareHexInCodegenOutput,
+  noBareHexInCodegenOutput,
+} from './no-bare-hex-in-codegen-output';
+import { lockfileSyncWithPackageJson } from './lockfile-sync-with-package-json';
+import {
+  extractRatchetPaths,
+  ratchetListPrecommitVsWorkflow,
+} from './ratchet-list-precommit-vs-workflow';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 describe('countInlineStyles', () => {
   it('catches JSX style={{}}', () => {
@@ -445,6 +457,13 @@ describe('no-stale-e2e-selectors helpers', () => {
   });
 });
 
+// v0.5 helpers — short-lived tmp dirs for codegen-output / lockfile-sync /
+// ratchet-list-drift ratchets that need real files on disk.
+
+function makeTmpRepo(): string {
+  return mkdtempSync(join(tmpdir(), 'ratchet-kit-test-'));
+}
+
 describe('findOffendersInWorkflow', () => {
   it('flags paths-filter when checkout lacks fetch-depth: 0', () => {
     const yml = `name: Demo
@@ -505,5 +524,387 @@ jobs:
       - run: npm test
 `;
     expect(findOffendersInWorkflow(yml, '.github/workflows/test.yml')).toEqual([]);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// v0.5 additions — noBareHexInCodegenOutput / lockfileSyncWithPackageJson /
+// ratchetListPrecommitVsWorkflow
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('countBareHexInCodegenOutput', () => {
+  it('catches all 4 hex widths', () => {
+    expect(countBareHexInCodegenOutput("'#abc'")).toBe(1);
+    expect(countBareHexInCodegenOutput("'#abcd'")).toBe(1);
+    expect(countBareHexInCodegenOutput("'#aabbcc'")).toBe(1);
+    expect(countBareHexInCodegenOutput("'#aabbccdd'")).toBe(1);
+  });
+
+  it('does not match var() / typed-symbol references', () => {
+    expect(countBareHexInCodegenOutput("'var(--color-icon-category-cleaning)'")).toBe(0);
+    expect(countBareHexInCodegenOutput('ColorsGenerated.iconCategoryCleaning')).toBe(0);
+  });
+
+  it('counts every occurrence in a multi-entry map', () => {
+    const sample = `'a': '#8BE0FF',\n'b': '#8BE0FF',\n'c': '#FFED99',`;
+    expect(countBareHexInCodegenOutput(sample)).toBe(3);
+  });
+});
+
+describe('noBareHexInCodegenOutput', () => {
+  it('passes when file count matches baseline', () => {
+    const root = makeTmpRepo();
+    try {
+      writeFileSync(join(root, 'gen.ts'), `const m = {'a':'#abc','b':'#abc'};`);
+      expect(() =>
+        noBareHexInCodegenOutput({ repoRoot: root, expectedCounts: { 'gen.ts': 2 } }),
+      ).not.toThrow();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('throws GROWTH when actual > baseline', () => {
+    const root = makeTmpRepo();
+    try {
+      // 3 hex literals; baseline only allows 2.
+      writeFileSync(join(root, 'gen.ts'), `const m = {'a':'#abc','b':'#def','c':'#aabbcc'};`);
+      expect(() =>
+        noBareHexInCodegenOutput({ repoRoot: root, expectedCounts: { 'gen.ts': 2 } }),
+      ).toThrow(/GROWTH in gen\.ts/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('throws RATCHET when actual < baseline (suggests shrink)', () => {
+    const root = makeTmpRepo();
+    try {
+      writeFileSync(join(root, 'gen.ts'), `const m = {'a':'#abc'};`);
+      expect(() =>
+        noBareHexInCodegenOutput({ repoRoot: root, expectedCounts: { 'gen.ts': 5 } }),
+      ).toThrow(/RATCHET: gen\.ts/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('throws when scanned file is missing', () => {
+    const root = makeTmpRepo();
+    try {
+      expect(() =>
+        noBareHexInCodegenOutput({
+          repoRoot: root,
+          expectedCounts: { 'missing.ts': 0 },
+        }),
+      ).toThrow(/scanned codegen output is missing/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('lockfileSyncWithPackageJson', () => {
+  function seedCodebase(
+    root: string,
+    source: string,
+    pkg: object,
+    lock: object,
+  ): void {
+    mkdirSync(join(root, source), { recursive: true });
+    writeFileSync(join(root, source, 'package.json'), JSON.stringify(pkg));
+    writeFileSync(join(root, source, 'package-lock.json'), JSON.stringify(lock));
+  }
+
+  it('passes when lockfile contains every dep at matching version + resolved entry', () => {
+    const root = makeTmpRepo();
+    try {
+      seedCodebase(
+        root,
+        'fn',
+        { name: 'fn', dependencies: { lodash: '^4.17.0' } },
+        {
+          lockfileVersion: 3,
+          packages: {
+            '': { dependencies: { lodash: '^4.17.0' } },
+            'node_modules/lodash': { version: '4.17.21' },
+          },
+        },
+      );
+      expect(() =>
+        lockfileSyncWithPackageJson({
+          repoRoot: root,
+          codebases: [{ source: 'fn', codebase: 'default' }],
+        }),
+      ).not.toThrow();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('throws when package-lock.json missing', () => {
+    const root = makeTmpRepo();
+    try {
+      mkdirSync(join(root, 'fn'));
+      writeFileSync(join(root, 'fn/package.json'), JSON.stringify({ name: 'fn' }));
+      expect(() =>
+        lockfileSyncWithPackageJson({
+          repoRoot: root,
+          codebases: [{ source: 'fn', codebase: 'default' }],
+        }),
+      ).toThrow(/missing fn\/package-lock\.json/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('throws when lockfileVersion is not 3', () => {
+    const root = makeTmpRepo();
+    try {
+      seedCodebase(root, 'fn', { name: 'fn' }, { lockfileVersion: 2, packages: {} });
+      expect(() =>
+        lockfileSyncWithPackageJson({
+          repoRoot: root,
+          codebases: [{ source: 'fn', codebase: 'default' }],
+        }),
+      ).toThrow(/must be lockfileVersion 3/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('throws when a dep is in package.json but missing from lockfile deps', () => {
+    const root = makeTmpRepo();
+    try {
+      seedCodebase(
+        root,
+        'fn',
+        { name: 'fn', dependencies: { lodash: '^4.17.0' } },
+        { lockfileVersion: 3, packages: { '': { dependencies: {} } } },
+      );
+      expect(() =>
+        lockfileSyncWithPackageJson({
+          repoRoot: root,
+          codebases: [{ source: 'fn', codebase: 'default' }],
+        }),
+      ).toThrow(/lodash declared in package\.json but missing from package-lock\.json deps/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('throws when dep version-specifier drifts between package.json and lockfile', () => {
+    const root = makeTmpRepo();
+    try {
+      seedCodebase(
+        root,
+        'fn',
+        { name: 'fn', dependencies: { lodash: '^4.18.0' } },
+        {
+          lockfileVersion: 3,
+          packages: {
+            '': { dependencies: { lodash: '^4.17.0' } },
+            'node_modules/lodash': { version: '4.17.21' },
+          },
+        },
+      );
+      expect(() =>
+        lockfileSyncWithPackageJson({
+          repoRoot: root,
+          codebases: [{ source: 'fn', codebase: 'default' }],
+        }),
+      ).toThrow(/version-specifier drift/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('throws when dep has no resolved node_modules entry in lockfile.packages', () => {
+    const root = makeTmpRepo();
+    try {
+      seedCodebase(
+        root,
+        'fn',
+        { name: 'fn', dependencies: { lodash: '^4.17.0' } },
+        {
+          lockfileVersion: 3,
+          packages: { '': { dependencies: { lodash: '^4.17.0' } } },
+        },
+      );
+      expect(() =>
+        lockfileSyncWithPackageJson({
+          repoRoot: root,
+          codebases: [{ source: 'fn', codebase: 'default' }],
+        }),
+      ).toThrow(/not resolved in package-lock\.json#packages/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('throws when neither codebases nor firebaseJsonPath provided', () => {
+    expect(() =>
+      lockfileSyncWithPackageJson({ repoRoot: '/tmp' } as any),
+    ).toThrow(/provide either `codebases` or `firebaseJsonPath`/);
+  });
+
+  it('loads codebases from firebase.json when firebaseJsonPath given', () => {
+    const root = makeTmpRepo();
+    try {
+      seedCodebase(
+        root,
+        'fn',
+        { name: 'fn', dependencies: { lodash: '^4.17.0' } },
+        {
+          lockfileVersion: 3,
+          packages: {
+            '': { dependencies: { lodash: '^4.17.0' } },
+            'node_modules/lodash': { version: '4.17.21' },
+          },
+        },
+      );
+      writeFileSync(
+        join(root, 'firebase.json'),
+        JSON.stringify({ functions: [{ source: 'fn', codebase: 'default' }] }),
+      );
+      expect(() =>
+        lockfileSyncWithPackageJson({
+          repoRoot: root,
+          firebaseJsonPath: 'firebase.json',
+        }),
+      ).not.toThrow();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('extractRatchetPaths', () => {
+  it('extracts test paths via default-shaped regex', () => {
+    const text = `npx vitest run src/__tests__/foo.test.ts src/__tests__/bar.test.ts`;
+    const re = /src\/__tests__\/[\w-]+\.test\.ts/g;
+    expect([...extractRatchetPaths(text, re)].sort()).toEqual([
+      'src/__tests__/bar.test.ts',
+      'src/__tests__/foo.test.ts',
+    ]);
+  });
+
+  it('returns empty set when no matches', () => {
+    expect(extractRatchetPaths('no tests here', /src\/__tests__\/[\w-]+\.test\.ts/g)).toEqual(
+      new Set(),
+    );
+  });
+
+  it('throws when regex lacks `g` flag', () => {
+    expect(() => extractRatchetPaths('any', /src\/__tests__\/[\w-]+\.test\.ts/)).toThrow(
+      /must have the `g` flag/,
+    );
+  });
+});
+
+describe('ratchetListPrecommitVsWorkflow', () => {
+  function seed(root: string, pre: string, wf: string): void {
+    mkdirSync(join(root, '.githooks'), { recursive: true });
+    mkdirSync(join(root, '.github/workflows'), { recursive: true });
+    writeFileSync(join(root, '.githooks/pre-commit'), pre);
+    writeFileSync(join(root, '.github/workflows/ci.yml'), wf);
+  }
+
+  it('passes when both files list the same ratchet set', () => {
+    const root = makeTmpRepo();
+    try {
+      seed(
+        root,
+        'npx vitest src/__tests__/a.test.ts src/__tests__/b.test.ts',
+        'npx vitest src/__tests__/a.test.ts src/__tests__/b.test.ts',
+      );
+      expect(() =>
+        ratchetListPrecommitVsWorkflow({
+          repoRoot: root,
+          preCommitPath: '.githooks/pre-commit',
+          workflowPath: '.github/workflows/ci.yml',
+        }),
+      ).not.toThrow();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('throws when pre-commit has a ratchet not in workflow', () => {
+    const root = makeTmpRepo();
+    try {
+      seed(
+        root,
+        'npx vitest src/__tests__/a.test.ts src/__tests__/b.test.ts',
+        'npx vitest src/__tests__/a.test.ts',
+      );
+      expect(() =>
+        ratchetListPrecommitVsWorkflow({
+          repoRoot: root,
+          preCommitPath: '.githooks/pre-commit',
+          workflowPath: '.github/workflows/ci.yml',
+        }),
+      ).toThrow(/NOT in \.github\/workflows\/ci\.yml/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('throws when workflow has a ratchet not in pre-commit', () => {
+    const root = makeTmpRepo();
+    try {
+      seed(
+        root,
+        'npx vitest src/__tests__/a.test.ts',
+        'npx vitest src/__tests__/a.test.ts src/__tests__/b.test.ts',
+      );
+      expect(() =>
+        ratchetListPrecommitVsWorkflow({
+          repoRoot: root,
+          preCommitPath: '.githooks/pre-commit',
+          workflowPath: '.github/workflows/ci.yml',
+        }),
+      ).toThrow(/NOT in \.githooks\/pre-commit/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('throws when pre-commit ratchet count is below minCount floor', () => {
+    const root = makeTmpRepo();
+    try {
+      seed(root, '# no tests', '# no tests');
+      expect(() =>
+        ratchetListPrecommitVsWorkflow({
+          repoRoot: root,
+          preCommitPath: '.githooks/pre-commit',
+          workflowPath: '.github/workflows/ci.yml',
+          minCount: 1,
+        }),
+      ).toThrow(/below the minCount floor of 1/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('honors custom ratchetPathRegex', () => {
+    const root = makeTmpRepo();
+    try {
+      seed(
+        root,
+        'bash tests/check-a.sh tests/check-b.sh',
+        'bash tests/check-a.sh tests/check-b.sh',
+      );
+      expect(() =>
+        ratchetListPrecommitVsWorkflow({
+          repoRoot: root,
+          preCommitPath: '.githooks/pre-commit',
+          workflowPath: '.github/workflows/ci.yml',
+          ratchetPathRegex: /tests\/check-[\w-]+\.sh/g,
+        }),
+      ).not.toThrow();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

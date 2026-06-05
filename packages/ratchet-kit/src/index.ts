@@ -50,6 +50,20 @@ export type { NoStaleE2eSelectorsConfig } from './ratchets/no-stale-e2e-selector
 export { noPathsFilterWithoutFetchDepthZero, findOffendersInWorkflow } from './ratchets/no-paths-filter-without-fetch-depth-zero';
 export type { NoPathsFilterWithoutFetchDepthZeroConfig } from './ratchets/no-paths-filter-without-fetch-depth-zero';
 
+// v0.5 additions — codegen-output regression gate + 2 deploy-shape drift gates.
+// Each carries its own configurable shape (not the RatchetConfig template)
+// because each scans different surfaces (file lists vs. firebase.json
+// manifests vs. two-file text-mirror checks).
+export { noBareHexInCodegenOutput, countBareHexInCodegenOutput } from './ratchets/no-bare-hex-in-codegen-output';
+export type { NoBareHexInCodegenOutputConfig } from './ratchets/no-bare-hex-in-codegen-output';
+export { lockfileSyncWithPackageJson } from './ratchets/lockfile-sync-with-package-json';
+export type {
+  LockfileSyncWithPackageJsonConfig,
+  LockfileSyncCodebase,
+} from './ratchets/lockfile-sync-with-package-json';
+export { ratchetListPrecommitVsWorkflow, extractRatchetPaths } from './ratchets/ratchet-list-precommit-vs-workflow';
+export type { RatchetListPrecommitVsWorkflowConfig } from './ratchets/ratchet-list-precommit-vs-workflow';
+
 // Future versions graduate more ratchets as patterns prove portable across
 // downstream products. Project-specific ratchets (e.g., `no-legacy-kid-cta-token`
 // in chorz) live in the project's own src/__tests__/ — see
