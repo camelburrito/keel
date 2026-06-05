@@ -21,8 +21,18 @@
 
 set -euo pipefail
 
-PROJECT_NAME="${1:?usage: bootstrap.sh <project-name> [target-dir]}"
-TARGET_DIR="${2:-$PWD}"
+# Parse args: project-name [target-dir] [--no-install]
+NO_INSTALL=0
+ARGS=()
+for arg in "$@"; do
+  case "$arg" in
+    --no-install) NO_INSTALL=1 ;;
+    *) ARGS+=("$arg") ;;
+  esac
+done
+
+PROJECT_NAME="${ARGS[0]:?usage: bootstrap.sh <project-name> [target-dir] [--no-install]}"
+TARGET_DIR="${ARGS[1]:-$PWD}"
 
 # Locate the keel repo (this script's directory)
 KEEL_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
@@ -39,13 +49,17 @@ if [[ ! "$PROJECT_NAME" =~ ^[a-z][a-z0-9-]*$ ]]; then
 fi
 
 # Pre-flight: PAT required for npm install of @camelburrito/* packages.
-if [[ -z "${GITHUB_PACKAGES_PAT:-}" ]]; then
+# Skipped when --no-install (the CI regression test runs without a PAT).
+if [[ "$NO_INSTALL" -eq 0 && -z "${GITHUB_PACKAGES_PAT:-}" ]]; then
   echo "ERROR: GITHUB_PACKAGES_PAT env var is not set." >&2
   echo "" >&2
   echo "Create a GitHub personal access token with 'read:packages' scope at" >&2
   echo "  https://github.com/settings/tokens" >&2
   echo "then export it:" >&2
   echo "  export GITHUB_PACKAGES_PAT=ghp_xxxxxxxxxxxx" >&2
+  echo "" >&2
+  echo "Or pass --no-install to skip the npm install step (you'll need to" >&2
+  echo "write .npmrc + run npm install yourself afterwards)." >&2
   exit 1
 fi
 
@@ -100,23 +114,30 @@ git add .
 git config core.hooksPath .githooks
 git commit -m "Initial bootstrap from keel" --no-verify >/dev/null
 
-# 5. Write .npmrc bound to the PAT
-cat > .npmrc <<EOF
+if [[ "$NO_INSTALL" -eq 1 ]]; then
+  echo "[keel] --no-install: skipping .npmrc + npm install steps."
+  echo "       Write .npmrc + run \`npm install @camelburrito/cf-utils @camelburrito/ratchet-kit\`"
+  echo "       yourself when ready (see templates/.npmrc.template)."
+else
+  # 5. Write .npmrc bound to the PAT
+  cat > .npmrc <<EOF
 @camelburrito:registry=https://npm.pkg.github.com
 //npm.pkg.github.com/:_authToken=$GITHUB_PACKAGES_PAT
 EOF
 
-# 6. Install the agnostic packages
-echo "[keel] Installing @camelburrito/cf-utils + @camelburrito/ratchet-kit"
-npm install \
-  --save '@camelburrito/cf-utils@^0.1.0' \
-  --save-dev '@camelburrito/ratchet-kit@^0.1.0' 2>&1 | tail -5 || {
-    echo "" >&2
-    echo "WARN: npm install of @camelburrito packages failed." >&2
-    echo "If you see 404, the packages may not be published yet — check:" >&2
-    echo "  https://github.com/camelburrito/keel/packages" >&2
-    echo "You can re-run npm install after publishing." >&2
-  }
+  # 6. Install the agnostic packages
+  echo "[keel] Installing @camelburrito/cf-utils + @camelburrito/ratchet-kit"
+  npm install \
+    --save '@camelburrito/cf-utils@^0.1.0' \
+    --save-dev '@camelburrito/ratchet-kit@^0.1.0' 2>&1 | tail -5 || {
+      echo "" >&2
+      echo "WARN: npm install of @camelburrito packages failed." >&2
+      echo "If you see 404, the packages may not be published yet — check:" >&2
+      echo "  https://github.com/camelburrito/keel/packages" >&2
+      echo "If you see 401, your PAT may lack read:packages scope." >&2
+      echo "You can re-run npm install after fixing." >&2
+    }
+fi
 
 # 7. Print next-step TODOs
 echo ""
