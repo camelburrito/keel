@@ -30,6 +30,15 @@ export { no3CharHexInTsx, count3CharHexInTsx } from './ratchets/no-3char-hex-in-
 export { noBareRgbaInCss, countBareRgbaInCss } from './ratchets/no-bare-rgba-in-css';
 export { noBareHexInSwift, countBareHexInSwift } from './ratchets/no-bare-hex-in-swift';
 
+// v0.3 additions — Swift design-system completeness pack. Locks size,
+// duration, font-size, and color-constructor literals out of Swift feature
+// code. Pairs with noBareHexInSwift to make Swift the same strict-token-only
+// surface as web.
+export { noBareSizeInSwift, countBareSizeInSwift } from './ratchets/no-bare-size-in-swift';
+export { noBareDurationInSwift, countBareDurationInSwift } from './ratchets/no-bare-duration-in-swift';
+export { noBareFontSizeInSwift, countBareFontSizeInSwift } from './ratchets/no-bare-font-size-in-swift';
+export { noBareColorConstructorInSwift, countBareColorConstructorInSwift } from './ratchets/no-bare-color-constructor-in-swift';
+
 // Future versions graduate more ratchets as patterns prove portable across
 // downstream products. Project-specific ratchets (e.g., `no-legacy-kid-cta-token`
 // in chorz) live in the project's own src/__tests__/ — see

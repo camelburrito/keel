@@ -2,6 +2,16 @@
 
 All notable changes to `@camelburrito/ratchet-kit` are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Semver.
 
+## [0.3.0] — 2026-06-05
+
+### Added — Swift design-system completeness pack
+- `noBareSizeInSwift` — detects bare numeric size literals across 6 Swift API surfaces: `.padding(N)`, `.padding(.horizontal, N)`, `.cornerRadius(N)`, `.frame(width:height:)`, `.offset(x:y:)`, `Spacing.custom(N)`, and bare `let X: CGFloat = N` declarations. Honors the Mandate-3 `// Design-intent constant — <reason> (see GH #<issue>)` escape on the same line or preceding line.
+- `noBareDurationInSwift` — detects bare numeric duration literals across 7 surfaces: `duration: N`, `.seconds(N)`, `.milliseconds(N)`, `.delay(N)`, `asyncAfter(deadline: .now() + N)`, `withTimeInterval: N`, `.spring(response: N, ...)`.
+- `noBareFontSizeInSwift` — detects bare numeric font sizes: `.system(size: N)`, `.custom("...", size: N)`, `UIFont.systemFont(ofSize: N)`, `UIFont(name:..., size: N)`.
+- `noBareColorConstructorInSwift` — detects bare `Color(red: <numeric> ...)` constructor calls. Use generated `Colors.*` tokens instead.
+
+Together these complete the Swift side of the design-system token mandate — Swift is now the same strict-token-only surface as web. Total ratchet exports: 9 → 13. 48 → 73 test cases.
+
 ## [0.2.0] — 2026-06-05
 
 ### Added

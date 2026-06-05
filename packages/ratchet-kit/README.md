@@ -26,10 +26,14 @@ Configurable strict-zero ratchet templates for keel-derived projects.
 | `no3CharHexInTsx` | v0.2 | 3-char hex shorthand in `.tsx` / `.ts` (companion to `noBareHexInTsx`) |
 | `noBareRgbaInCss` | v0.2 | `rgba(...)` call sites in `.css` (each counts independently) |
 | `noBareHexInSwift` | v0.2 | bare `#hex` + `0xNN / 255` in `.swift` (skips `//`, `#if DEBUG`, `#Preview {}`) |
+| `noBareSizeInSwift` | v0.3 | `.padding(N)` / `.cornerRadius(N)` / `.frame(width:height:)` / `.offset(x:y:)` / `Spacing.custom(N)` / `let X: CGFloat = N` (Design-intent escape supported) |
+| `noBareDurationInSwift` | v0.3 | `duration: N`, `.seconds/.milliseconds(N)`, `.delay(N)`, `asyncAfter`, `withTimeInterval:`, `.spring(response:)` |
+| `noBareFontSizeInSwift` | v0.3 | `.system(size: N)`, `.custom(..., size: N)`, `UIFont.systemFont(ofSize: N)`, `UIFont(name:size:)` |
+| `noBareColorConstructorInSwift` | v0.3 | bare `Color(red: <numeric>, ...)` constructor calls |
 
 **On the roadmap (graduate from chorz as patterns prove portable):**
 
-`noBareSizeInSwift`, `noBareDurationInSwift`, `noBareFontSizeInSwift`, `noBareColorConstructorInSwift`, `noBareFontPropertyInCss`, `noBareViewportEmInCss`, `noUndefinedTokens`, `noBareHexInCodegenOutput`, `noBareFirebaseUidInLogger`, `noStaleE2eSelectors`, `ratchetListPrecommitVsWorkflow`, `lockfileSyncWithPackageJson`, `noPathsFilterWithoutFetchDepthZero`, `cfUtilsTarballsCommitted`.
+`noBareFontPropertyInCss`, `noBareViewportEmInCss`, `noUndefinedTokens`, `noBareHexInCodegenOutput`, `noBareFirebaseUidInLogger`, `noStaleE2eSelectors`, `ratchetListPrecommitVsWorkflow`, `lockfileSyncWithPackageJson`, `noPathsFilterWithoutFetchDepthZero`, `cfUtilsTarballsCommitted`.
 
 ## Usage
 

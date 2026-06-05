@@ -8,6 +8,10 @@ import { countImportants } from './no-important-css';
 import { count3CharHexInTsx } from './no-3char-hex-in-tsx';
 import { countBareRgbaInCss } from './no-bare-rgba-in-css';
 import { countBareHexInSwift } from './no-bare-hex-in-swift';
+import { countBareSizeInSwift } from './no-bare-size-in-swift';
+import { countBareDurationInSwift } from './no-bare-duration-in-swift';
+import { countBareFontSizeInSwift } from './no-bare-font-size-in-swift';
+import { countBareColorConstructorInSwift } from './no-bare-color-constructor-in-swift';
 
 describe('countInlineStyles', () => {
   it('catches JSX style={{}}', () => {
@@ -192,5 +196,115 @@ let dev = "#FF0000"
 
 let after = 1`;
     expect(countBareHexInSwift(src)).toBe(0);
+  });
+});
+
+describe('countBareSizeInSwift', () => {
+  it('catches .padding(N)', () => {
+    expect(countBareSizeInSwift('Text("").padding(16)')).toBe(1);
+  });
+
+  it('catches .padding(.horizontal, N)', () => {
+    expect(countBareSizeInSwift('Text("").padding(.horizontal, 24)')).toBe(1);
+  });
+
+  it('catches .cornerRadius(N)', () => {
+    expect(countBareSizeInSwift('Rectangle().cornerRadius(8)')).toBe(1);
+  });
+
+  it('catches .frame labeled width/height args', () => {
+    expect(countBareSizeInSwift('Rectangle().frame(width: 100, height: 50)')).toBe(2);
+  });
+
+  it('catches .offset(x:y:) labeled args', () => {
+    expect(countBareSizeInSwift('Text("").offset(x: 10, y: 20)')).toBe(2);
+  });
+
+  it('catches let X: CGFloat = N WITHOUT Design-intent escape', () => {
+    expect(countBareSizeInSwift('let pad: CGFloat = 16')).toBe(1);
+  });
+
+  it('honors Design-intent escape on same line', () => {
+    expect(
+      countBareSizeInSwift(
+        'let ctaHeight: CGFloat = 64 // Design-intent constant — kid-finger tap target (see GH #309)',
+      ),
+    ).toBe(0);
+  });
+
+  it('honors Design-intent escape on preceding line', () => {
+    const src = `// Design-intent constant — focal CTA (see GH #309)
+let ctaHeight: CGFloat = 64`;
+    expect(countBareSizeInSwift(src)).toBe(0);
+  });
+});
+
+describe('countBareDurationInSwift', () => {
+  it('catches duration: N', () => {
+    expect(countBareDurationInSwift('Animation.easeInOut(duration: 0.3)')).toBe(1);
+  });
+
+  it('catches .seconds(N) and .milliseconds(N)', () => {
+    expect(
+      countBareDurationInSwift('DispatchTime.now() + .seconds(2) + .milliseconds(500)'),
+    ).toBe(2);
+  });
+
+  it('catches .delay(N)', () => {
+    expect(countBareDurationInSwift('Animation.default.delay(0.5)')).toBe(1);
+  });
+
+  it('catches asyncAfter deadline literals', () => {
+    expect(
+      countBareDurationInSwift('DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {}'),
+    ).toBe(1);
+  });
+
+  it('catches Timer withTimeInterval:', () => {
+    expect(
+      countBareDurationInSwift('Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true)'),
+    ).toBe(1);
+  });
+
+  it('catches .spring(response: N)', () => {
+    expect(countBareDurationInSwift('.spring(response: 0.4, dampingFraction: 0.7)')).toBe(1);
+  });
+});
+
+describe('countBareFontSizeInSwift', () => {
+  it('catches .system(size: N)', () => {
+    expect(countBareFontSizeInSwift('.font(.system(size: 14))')).toBe(1);
+  });
+
+  it('catches .custom("...", size: N)', () => {
+    expect(countBareFontSizeInSwift('.font(.custom("Inter", size: 16))')).toBe(1);
+  });
+
+  it('catches UIFont.systemFont(ofSize: N)', () => {
+    expect(countBareFontSizeInSwift('UIFont.systemFont(ofSize: 17)')).toBe(1);
+  });
+
+  it('catches UIFont(name: ..., size: N)', () => {
+    expect(countBareFontSizeInSwift('UIFont(name: "Inter", size: 14)')).toBe(1);
+  });
+});
+
+describe('countBareColorConstructorInSwift', () => {
+  it('catches Color(red: <digit> calls', () => {
+    expect(
+      countBareColorConstructorInSwift('Color(red: 0.5, green: 0.2, blue: 0.1)'),
+    ).toBe(1);
+  });
+
+  it('does NOT catch Color(red: someVar, ...)', () => {
+    expect(countBareColorConstructorInSwift('Color(red: r, green: g, blue: b)')).toBe(0);
+  });
+
+  it('ignores Color() constructor calls inside #if DEBUG', () => {
+    const src = `let prod = Colors.accent
+#if DEBUG
+let dev = Color(red: 0.5, green: 0.2, blue: 0.1)
+#endif`;
+    expect(countBareColorConstructorInSwift(src)).toBe(0);
   });
 });
