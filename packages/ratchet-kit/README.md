@@ -13,33 +13,23 @@ Configurable strict-zero ratchet templates for keel-derived projects.
 - `countMatchesIgnoringBrands(matches, brands)`
 - `DeferralEntry` shape + `checkDeferralCount(actual, deferred)`
 
-**Ratchet templates** — each exported as a configurable function that takes `{ paths, expectedCounts?, deferrals?, allowDisableDirectives? }`:
+**Ratchet templates** — each exported as a configurable function that takes a `RatchetConfig` (`{ root, extensions, expectedCounts?, ignoredDirs?, ignoredPrefixes?, ignoredFiles? }`). Available as of **v0.2.0**:
 
-| Export | Defends |
-|--------|---------|
-| `noInlineStyle` | inline `style={{}}` in `.tsx` |
-| `noBareHexInTsx` | bare `#hex` in `.tsx` |
-| `noBareHexInCss` | bare `#hex` in `.css` outside tokens |
-| `noBareHexInSwift` | bare `#hex` in `.swift` |
-| `noBarePxInCss` | bare `Npx` in `.css` |
-| `noBareRgbaInCss` | `rgba(...)` outside tokens |
-| `noBareSizeInSwift` | bare `: CGFloat = N` declarations |
-| `noBareDurationInSwift` | bare `Duration` literals |
-| `noBareFontSizeInSwift` | bare `.font(.system(size: N))` |
-| `noBareColorConstructorInSwift` | bare `Color(red:green:blue:)` |
-| `noBareFontPropertyInCss` | bare `font:` shorthand |
-| `noBareViewportEmInCss` | bare `vh/vw/em/rem` |
-| `noImportantCss` | `!important` declarations |
-| `noUndefinedTokens` | CSS custom-prop refs to undefined tokens |
-| `no3CharHexInTsx` | 3-char hex shorthand |
-| `noBareHexInCodegenOutput` | hex literals in generator-emitted files |
-| `noConsoleInSource` | `console.*` calls in source |
-| `noBareFirebaseUidInLogger` | 28-char UID redaction in CF logger |
-| `noStaleE2eSelectors` | orphan `data-testid` references in specs |
-| `ratchetListPrecommitVsWorkflow` | pre-commit vs CI drift |
-| `lockfileSyncWithPackageJson` | per-codebase lockfile drift |
-| `noPathsFilterWithoutFetchDepthZero` | shallow-clone trap in GHA paths-filter |
-| `cfUtilsTarballsCommitted` | committed-tarball integrity vs lockfile sha512 |
+| Export | Since | Defends |
+|--------|-------|---------|
+| `noInlineStyle` | v0.1 | inline `style={{}}` in `.tsx` (incl. `createElement` variant) |
+| `noBareHexInTsx` | v0.1 | bare `#hex` (3/6/8-char) in `.tsx` / `.ts` |
+| `noBareHexInCss` | v0.1 | bare `#hex` in `.css` outside tokens |
+| `noBarePxInCss` | v0.1 | bare `Npx` in `.css` (skips `--token:` declarations) |
+| `noConsoleInSource` | v0.1 | `console.*` calls with `-- <rationale>` disable-directive support |
+| `noImportantCss` | v0.2 | `!important` declarations |
+| `no3CharHexInTsx` | v0.2 | 3-char hex shorthand in `.tsx` / `.ts` (companion to `noBareHexInTsx`) |
+| `noBareRgbaInCss` | v0.2 | `rgba(...)` call sites in `.css` (each counts independently) |
+| `noBareHexInSwift` | v0.2 | bare `#hex` + `0xNN / 255` in `.swift` (skips `//`, `#if DEBUG`, `#Preview {}`) |
+
+**On the roadmap (graduate from chorz as patterns prove portable):**
+
+`noBareSizeInSwift`, `noBareDurationInSwift`, `noBareFontSizeInSwift`, `noBareColorConstructorInSwift`, `noBareFontPropertyInCss`, `noBareViewportEmInCss`, `noUndefinedTokens`, `noBareHexInCodegenOutput`, `noBareFirebaseUidInLogger`, `noStaleE2eSelectors`, `ratchetListPrecommitVsWorkflow`, `lockfileSyncWithPackageJson`, `noPathsFilterWithoutFetchDepthZero`, `cfUtilsTarballsCommitted`.
 
 ## Usage
 
