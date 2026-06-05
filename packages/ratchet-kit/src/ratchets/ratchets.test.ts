@@ -12,6 +12,10 @@ import { countBareSizeInSwift } from './no-bare-size-in-swift';
 import { countBareDurationInSwift } from './no-bare-duration-in-swift';
 import { countBareFontSizeInSwift } from './no-bare-font-size-in-swift';
 import { countBareColorConstructorInSwift } from './no-bare-color-constructor-in-swift';
+import { countBareFontPropertyInCss } from './no-bare-font-property-in-css';
+import { countBareViewportEmInCss } from './no-bare-viewport-em-in-css';
+import { _internal as e2eInternal } from './no-stale-e2e-selectors';
+import { findOffendersInWorkflow } from './no-paths-filter-without-fetch-depth-zero';
 
 describe('countInlineStyles', () => {
   it('catches JSX style={{}}', () => {
@@ -306,5 +310,200 @@ describe('countBareColorConstructorInSwift', () => {
 let dev = Color(red: 0.5, green: 0.2, blue: 0.1)
 #endif`;
     expect(countBareColorConstructorInSwift(src)).toBe(0);
+  });
+});
+
+// v0.4 additions — CSS pack completeness (font-property + viewport-em) and
+// structural ratchets (E2E selector orphans + paths-filter shallow-clone trap).
+
+describe('countBareFontPropertyInCss', () => {
+  it('catches bare font-weight numeric', () => {
+    expect(countBareFontPropertyInCss('.x { font-weight: 700; }')).toBe(1);
+  });
+
+  it('catches bare letter-spacing px', () => {
+    expect(countBareFontPropertyInCss('.x { letter-spacing: 2px; }')).toBe(1);
+  });
+
+  it('catches bare line-height decimal', () => {
+    expect(countBareFontPropertyInCss('.x { line-height: 1.4; }')).toBe(1);
+  });
+
+  it('catches negative letter-spacing em', () => {
+    expect(countBareFontPropertyInCss('.x { letter-spacing: -0.05em; }')).toBe(1);
+  });
+
+  it('ignores var(--token) references for all 3 properties', () => {
+    expect(
+      countBareFontPropertyInCss(
+        '.x { font-weight: var(--font-weight-bold); line-height: var(--line-height-tight); letter-spacing: var(--letter-spacing-tight); }',
+      ),
+    ).toBe(0);
+  });
+
+  it('ignores literals inside /* */ comments', () => {
+    expect(countBareFontPropertyInCss('/* example: font-weight: 700 */ .x {}')).toBe(0);
+  });
+});
+
+describe('countBareViewportEmInCss', () => {
+  it('catches 100vh', () => {
+    expect(countBareViewportEmInCss('.x { min-height: 100vh; }')).toBe(1);
+  });
+
+  it('catches negative em', () => {
+    expect(countBareViewportEmInCss('.x { letter-spacing: -0.05em; }')).toBe(1);
+  });
+
+  it('catches multiple viewport units in one declaration', () => {
+    expect(countBareViewportEmInCss('.x { width: 50vw; height: 50vh; }')).toBe(2);
+  });
+
+  it('catches vmin/vmax', () => {
+    expect(countBareViewportEmInCss('.x { font-size: 5vmin; height: 80vmax; }')).toBe(2);
+  });
+
+  it('does NOT catch media-query px values (no leading :)', () => {
+    expect(countBareViewportEmInCss('@media (min-width: 1024px) { .x { color: red; } }')).toBe(0);
+  });
+
+  it('ignores var(--token) references', () => {
+    expect(countBareViewportEmInCss('.x { height: var(--space-4); }')).toBe(0);
+  });
+
+  it('ignores literals inside /* */ comments', () => {
+    expect(countBareViewportEmInCss('/* example: 100vh */ .x { color: red; }')).toBe(0);
+  });
+});
+
+describe('no-stale-e2e-selectors helpers', () => {
+  describe('extractTestidLiterals', () => {
+    it("extracts getByTestId('foo')", () => {
+      const usages = e2eInternal.extractTestidLiterals(`page.getByTestId('chore-card-body')`);
+      expect(usages).toEqual([{ literal: 'chore-card-body', isPrefixMatch: false }]);
+    });
+
+    it('extracts data-testid="foo" attribute literal', () => {
+      const usages = e2eInternal.extractTestidLiterals(`render(<div data-testid="foo-bar" />)`);
+      expect(usages).toEqual([{ literal: 'foo-bar', isPrefixMatch: false }]);
+    });
+
+    it('extracts [data-testid="foo"] CSS selector', () => {
+      const usages = e2eInternal.extractTestidLiterals(`page.locator('[data-testid="x"]')`);
+      expect(usages).toEqual([{ literal: 'x', isPrefixMatch: false }]);
+    });
+
+    it('extracts prefix-match [data-testid^="foo-"] selector', () => {
+      const usages = e2eInternal.extractTestidLiterals(`page.locator('[data-testid^="grid-tap-"]')`);
+      expect(usages).toEqual([{ literal: 'grid-tap-', isPrefixMatch: true }]);
+    });
+
+    it('deduplicates same literal preferring prefix-match flag', () => {
+      const content = `getByTestId('foo') ... [data-testid^="foo"]`;
+      const usages = e2eInternal.extractTestidLiterals(content);
+      // Same literal "foo" exact + prefix → prefix wins (less strict).
+      expect(usages).toEqual([{ literal: 'foo', isPrefixMatch: true }]);
+    });
+  });
+
+  describe('existsInHaystack', () => {
+    it('finds exact match in double-quoted source', () => {
+      const haystack = `<button data-testid="confirm-btn">Confirm</button>`;
+      expect(
+        e2eInternal.existsInHaystack({ literal: 'confirm-btn', isPrefixMatch: false }, haystack),
+      ).toBe(true);
+    });
+
+    it('finds exact match in single-quoted source', () => {
+      const haystack = `accessibilityIdentifier('confirm-btn')`;
+      expect(
+        e2eInternal.existsInHaystack({ literal: 'confirm-btn', isPrefixMatch: false }, haystack),
+      ).toBe(true);
+    });
+
+    it('returns false when literal is absent', () => {
+      const haystack = `<button data-testid="other-btn" />`;
+      expect(
+        e2eInternal.existsInHaystack({ literal: 'confirm-btn', isPrefixMatch: false }, haystack),
+      ).toBe(false);
+    });
+
+    it('finds prefix-match against template literal', () => {
+      const haystack = 'data-testid={`grid-tap-${id}`}';
+      expect(
+        e2eInternal.existsInHaystack({ literal: 'grid-tap-', isPrefixMatch: true }, haystack),
+      ).toBe(true);
+    });
+
+    it('tolerates concrete rendered testid value against template prefix in source', () => {
+      // Spec asserts exact 'grid-tap-42', source emits `grid-tap-${id}` — should pass.
+      const haystack = 'data-testid={`grid-tap-${id}`}';
+      expect(
+        e2eInternal.existsInHaystack({ literal: 'grid-tap-42', isPrefixMatch: false }, haystack),
+      ).toBe(true);
+    });
+  });
+});
+
+describe('findOffendersInWorkflow', () => {
+  it('flags paths-filter when checkout lacks fetch-depth: 0', () => {
+    const yml = `name: Demo
+on:
+  push:
+    branches: [main]
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+`;
+    const offenders = findOffendersInWorkflow(yml, '.github/workflows/demo.yml');
+    expect(offenders).toHaveLength(1);
+    expect(offenders[0]!.reason).toContain('does not set fetch-depth: 0');
+  });
+
+  it('accepts paths-filter when preceding checkout sets fetch-depth: 0', () => {
+    const yml = `name: Demo
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dorny/paths-filter@v3
+        id: filter
+`;
+    const offenders = findOffendersInWorkflow(yml, '.github/workflows/demo.yml');
+    expect(offenders).toHaveLength(0);
+  });
+
+  it('flags paths-filter usage with no preceding checkout in the same job', () => {
+    const yml = `name: Demo
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dorny/paths-filter@v3
+        id: filter
+`;
+    const offenders = findOffendersInWorkflow(yml, '.github/workflows/demo.yml');
+    expect(offenders).toHaveLength(1);
+    expect(offenders[0]!.checkoutLine).toBeNull();
+    expect(offenders[0]!.reason).toContain('no preceding actions/checkout');
+  });
+
+  it('returns no offenders when paths-filter is absent', () => {
+    const yml = `name: Test
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm test
+`;
+    expect(findOffendersInWorkflow(yml, '.github/workflows/test.yml')).toEqual([]);
   });
 });

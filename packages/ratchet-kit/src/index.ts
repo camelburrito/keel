@@ -39,6 +39,17 @@ export { noBareDurationInSwift, countBareDurationInSwift } from './ratchets/no-b
 export { noBareFontSizeInSwift, countBareFontSizeInSwift } from './ratchets/no-bare-font-size-in-swift';
 export { noBareColorConstructorInSwift, countBareColorConstructorInSwift } from './ratchets/no-bare-color-constructor-in-swift';
 
+// v0.4 additions — CSS pack completeness (font-property + viewport-em sibling
+// detectors to noBarePxInCss / noBareHexInCss) plus two structural ratchets
+// for cross-cutting infrastructure (E2E selector orphans + paths-filter
+// shallow-clone trap).
+export { noBareFontPropertyInCss, countBareFontPropertyInCss } from './ratchets/no-bare-font-property-in-css';
+export { noBareViewportEmInCss, countBareViewportEmInCss } from './ratchets/no-bare-viewport-em-in-css';
+export { noStaleE2eSelectors, buildProductionHaystack } from './ratchets/no-stale-e2e-selectors';
+export type { NoStaleE2eSelectorsConfig } from './ratchets/no-stale-e2e-selectors';
+export { noPathsFilterWithoutFetchDepthZero, findOffendersInWorkflow } from './ratchets/no-paths-filter-without-fetch-depth-zero';
+export type { NoPathsFilterWithoutFetchDepthZeroConfig } from './ratchets/no-paths-filter-without-fetch-depth-zero';
+
 // Future versions graduate more ratchets as patterns prove portable across
 // downstream products. Project-specific ratchets (e.g., `no-legacy-kid-cta-token`
 // in chorz) live in the project's own src/__tests__/ — see
