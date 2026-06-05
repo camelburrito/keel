@@ -43,4 +43,4 @@ When chorz (or any reference project) adds a significant new architecture (notif
 
 ## Status
 
-Bootstrapped 2026-06-04. Pilot playbook entry in flight: `05-observability-pii.md`. See [docs/playbook/00-index.md](docs/playbook/00-index.md) for the full playbook table of contents and draft status.
+Bootstrapped 2026-06-04. First full playbook entry drafted: `05-observability-pii.md` (🟢). Next candidates: `02-design-system.md`, `07-ratchet-framework.md`. See [docs/playbook/00-index.md](docs/playbook/00-index.md) for the full table of contents and per-entry status.

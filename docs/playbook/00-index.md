@@ -18,7 +18,7 @@ A new entry is added every time a reference project ships a significant new arch
 | 02 | [Design system](02-design-system.md) | 🟡 outlined | `chorz/CLAUDE.md § Design System Governance`, `chorz/src/ui/`, `chorz/shared/tokens/tokens.json` |
 | 03 | [CI/CD philosophy](03-ci-cd.md) | 🟡 outlined | `chorz/scripts/ci-local.sh`, `chorz/.githooks/`, `chorz/.github/workflows/test-coverage.yml` |
 | 04 | [Architecture docs convention](04-architecture-docs.md) | 🟡 outlined | `chorz/docs/architecture/`, `chorz/.claude/hooks/architecture-doc-drift.sh` |
-| 05 | [Observability & PII handling](05-observability-pii.md) | 🟡 outlined → pilot for first full draft | `chorz/docs/architecture/pii-handling.md`, `chorz/shared-cf-utils/src/utils/logger.ts`, `chorz/scripts/audit-cloud-logging-pii.mjs` |
+| 05 | [Observability & PII handling](05-observability-pii.md) | 🟢 drafted (pilot full entry, 2026-06-04) | `chorz/docs/architecture/pii-handling.md`, `chorz/shared-cf-utils/src/utils/logger.ts`, `chorz/scripts/audit-cloud-logging-pii.mjs` |
 | 06 | [Testing cadence](06-testing-cadence.md) | 🟡 outlined | `chorz/docs/architecture/testing.md`, `chorz/functions/src/__tests__-integration/helpers/seedPermutations.ts` |
 | 07 | [Ratchet framework](07-ratchet-framework.md) | 🟡 outlined | `chorz/src/__tests__/_ratchetHelpers.ts`, `chorz/src/__tests__/no-*.test.ts` |
 | 08 | [String catalog & i18n](08-string-catalog-i18n.md) | 🟡 outlined | `chorz/docs/architecture/design-system-architecture.md § 3.5`, `chorz/scripts/gen-strings.mjs` |
