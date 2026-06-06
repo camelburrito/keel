@@ -101,7 +101,18 @@ Each file needs at minimum:
 
 > **Never** commit `.env.*` files to git. Keel's templated `.gitignore` excludes them; the `.example` versions are the only ones that ship.
 
-## Step 4 — First feature
+## Step 4 — Skim the workflow rules
+
+Open `CLAUDE.md` at the project root. It shipped from keel's `templates/CLAUDE.md` and codifies the workflow discipline the keel reference projects developed over months: Ralph loop rules (NITs are merge gates, 3-clean exit, no pause between iters), PR conventions (ready-checklist before `gh pr create`, screenshot mandate for UI surfaces, `.planning/` in PR branch, ask before every merge), testing cadence (3-tier model, local-first gates, full suite at phase end), token discipline (snap onto closest existing token; no new tokens without approval), and more.
+
+You don't have to memorize it — Claude Code loads CLAUDE.md into every conversation in this project. But skim it once so you know what's in there. Two sections need your input as the project grows:
+
+- **§9 Project-specific commands** — fill in `npm run dev` / `npm run build` / etc. as your scripts solidify.
+- **§11 Ratchet inventory** — verbatim list from `.githooks/pre-commit`; update whenever you add or retire a ratchet.
+
+If a keel default doesn't fit your project, edit the rule explicitly with a comment explaining the deviation — don't let it drift silently.
+
+## Step 5 — First feature
 
 Now that the harness is wired, do something user-facing. The minimum viable feature for a new project is **sign in + greet the user**:
 
@@ -112,7 +123,7 @@ Now that the harness is wired, do something user-facing. The minimum viable feat
 5. **Commit** — `git add . && git commit -m "Sign in + greet"`. The pre-commit hook runs your token check + tsc + the ratchet vitest list. If anything fails, fix the underlying issue (don't bypass with `--no-verify` per playbook 03).
 6. **Push** — `git push -u origin main`. Pre-push runs `scripts/ci-local.sh` (the local mirror of CI).
 
-## Step 5 — First Cloud Function
+## Step 6 — First Cloud Function
 
 Keel's templates wire `functions/` (default codebase) up to the `@camelburrito/cf-utils` package. Add a `helloWorld` callable:
 
@@ -140,7 +151,7 @@ export { helloWorld } from './hello/helloWorld';
 
 The keel playbook 09 (Firebase stack) covers the deploy semantics. See `recipes/add-a-cloud-function.md` for the per-CF checklist (validation, rate limit, audit, tests).
 
-## Step 6 — First deploy
+## Step 7 — First deploy
 
 Deploys are gated by `npm run test:pre-release` (the templated pre-release wall — see playbook 06):
 
@@ -165,7 +176,7 @@ npm run deploy:prod
 
 > **Don't skip the staging soak.** Per memory rule `feedback_staging_before_prod.md`, prod gets the change only after staging has been running it for a defined period. Set your own bar (24h is typical for a single-developer project).
 
-## Step 7 — Wire your first ratchet
+## Step 8 — Wire your first ratchet
 
 Keel ships `@camelburrito/ratchet-kit` with 20 graduated ratchets (as of v0.5.0). The templated `.githooks/pre-commit` already runs a default set. To add one of your own:
 
