@@ -25,7 +25,7 @@ A new entry is added every time a reference project ships a significant new arch
 | 09 | [Firebase stack](09-firebase-stack.md) | 🟢 drafted | `chorz/docs/architecture/cloud-functions.md`, `chorz/firebase.json`, `chorz/firestore.rules` |
 | 10 | [Screenshot workflow](10-screenshot-workflow.md) | 🟢 drafted | `chorz/.claude/skills/pr-ui-screenshots`, `camelburrito/chorz-screenshots` |
 | 11 | [Staging & prod environments](11-staging-prod-environments.md) | 🟢 drafted | `chorz/.github/workflows/_deploy.yml`, `chorz/.env.*`, `chorz/scripts/verify-deploy-shape.sh` |
-| 12 | [Notifications](12-notifications.md) | 🟡 outlined | `chorz/docs/architecture/notifications.md`, `chorz/shared-cf-utils/src/notifications/`, `chorz/functions-calendar/src/notifications/`, `chorz/apple/Chorz/ChorzWidgets/` |
+| 12 | [Notifications](12-notifications.md) | 🟢 drafted | `chorz/docs/architecture/notifications.md`, `chorz/shared-cf-utils/src/notifications/`, `chorz/functions-calendar/src/notifications/`, `chorz/apple/Chorz/ChorzWidgets/` |
 
 ## Future entries (placeholders)
 
