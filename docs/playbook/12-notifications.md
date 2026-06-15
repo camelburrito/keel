@@ -229,7 +229,7 @@ This is the same projector-contract discipline as your card projector — see th
 
 ## 7. Incident learnings (what actually broke in production)
 
-**Every item below shipped with green tests and delivered ZERO pushes until it was fixed.** A project bootstrapping from keel must read this section — these are the failures the test suite does not catch, because the bugs live in the seams between platforms, in the gap between mock and real, and in out-of-band platform configuration.
+**Every item below shipped with green tests and silently broke push delivery — wholly or partially — until it was caught on real hardware or in production.** A project bootstrapping from keel must read this section — these are the failures the test suite does not catch, because the bugs live in the seams between platforms, in the gap between mock and real, and in out-of-band platform configuration.
 
 ### 7.1 Token read-shape must equal write-shape
 
