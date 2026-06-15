@@ -234,7 +234,7 @@ This is the same projector-contract discipline as your card projector — see th
 ### 7.1 Token read-shape must equal write-shape
 
 - **Symptom:** Feed worked, push fired zero notifications, no error anywhere.
-- **Root cause:** The dispatcher read the per-device token field as a flat `string[]` while the registrar wrote `{token, platform, registeredAt, lastSeenAt}` **objects**. The multicast received `undefined` for every token and the SDK silently no-op'd. Tests passed because they **mocked the token resolver** — the mock returned the shape the dispatcher expected, not the shape the registrar actually writes.
+- **Root cause:** The dispatcher read the per-device token field as a flat `string[]` while the registrar wrote `{token, platform, registeredAt, lastSeenAt}` **objects**. The multicast received `undefined` for every token and the SDK silently no-op'd. Tests passed because the test seam fed the dispatcher data in the shape it expected, rather than driving the *real registrar's* write shape end-to-end.
 - **Fix:** Read the entry objects; map `.token`; tolerate the legacy shape explicitly.
 - **What catches it next time:** A **contract/integration test that asserts the resolver reads the same shape the registrar writes** (drive both ends, not a mock in the middle). Plus a `resolved N tokens / skipped recipient` structured log on the dispatch path, so a **zero-token fan-out is visible** instead of silent.
 
