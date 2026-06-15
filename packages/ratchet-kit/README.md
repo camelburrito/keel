@@ -2,7 +2,7 @@
 
 Configurable strict-zero ratchet templates for keel-derived projects.
 
-**Status:** scaffold. Extraction from `chorz/src/__tests__/no-*.test.ts` planned. See [keel playbook 07-ratchet-framework.md](../../docs/playbook/07-ratchet-framework.md).
+**Status:** stable — 23 ratchets extracted from `chorz/src/__tests__/`. See [keel playbook 07-ratchet-framework.md](../../docs/playbook/07-ratchet-framework.md).
 
 ## What this package provides
 
