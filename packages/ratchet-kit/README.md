@@ -2,7 +2,7 @@
 
 Configurable strict-zero ratchet templates for keel-derived projects.
 
-**Status:** scaffold. Extraction from `chorz/src/__tests__/no-*.test.ts` planned. See [keel playbook 07-ratchet-framework.md](../../docs/playbook/07-ratchet-framework.md).
+**Status:** stable — 23 ratchets extracted from `chorz/src/__tests__/`. See [keel playbook 07-ratchet-framework.md](../../docs/playbook/07-ratchet-framework.md).
 
 ## What this package provides
 
@@ -30,10 +30,20 @@ Configurable strict-zero ratchet templates for keel-derived projects.
 | `noBareDurationInSwift` | v0.3 | `duration: N`, `.seconds/.milliseconds(N)`, `.delay(N)`, `asyncAfter`, `withTimeInterval:`, `.spring(response:)` |
 | `noBareFontSizeInSwift` | v0.3 | `.system(size: N)`, `.custom(..., size: N)`, `UIFont.systemFont(ofSize: N)`, `UIFont(name:size:)` |
 | `noBareColorConstructorInSwift` | v0.3 | bare `Color(red: <numeric>, ...)` constructor calls |
+| `noBareFontPropertyInCss` | v0.4 | bare `font:` shorthand / `font-family` literals in `.css` |
+| `noBareViewportEmInCss` | v0.4 | bare viewport (`vw`/`vh`) + `em` literals in `.css` |
+| `noStaleE2eSelectors` | v0.4 | testid literals in `e2e/**` specs that no longer exist in production source |
+| `noPathsFilterWithoutFetchDepthZero` | v0.4 | `dorny/paths-filter` usage without a preceding `fetch-depth: 0` checkout |
+| `noBareHexInCodegenOutput` | v0.5 | bare `#hex` in named codegen-output files (var()-reference regression gate) |
+| `lockfileSyncWithPackageJson` | v0.5 | per-codebase `package-lock.json` carries every `package.json` dependency |
+| `ratchetListPrecommitVsWorkflow` | v0.5 | the pre-commit hook + CI workflow run the same ratchet set (drift gate) |
+| `noUndefinedTokens` | v0.6 | `var(--xyz)` references in consumer CSS resolve to declared tokens |
+| `archDocIntegrity` | v0.7 | every `docs/architecture/*.md`: links/anchors resolve (GitHub-exact slug), fully-qualified cited paths exist (incl. `file:line`), mermaid renders, footer present. Config: `{ archDir, repoRoot, topLevelDirs, ephemeralPrefixes? }`. |
+| `noAdaptiveFgOnKeptLightIsland` | v0.7 | dark-mode polarity: fails a CSS rule / SwiftUI modifier-run that paints an adaptive foreground on a kept-light island background. Adaptive set self-derived from `tokens.json` `darkColor`. Config: `{ tokensJsonPath, cssRoot?, swiftRoots? }`. |
 
 **On the roadmap (graduate from chorz as patterns prove portable):**
 
-`noBareFontPropertyInCss`, `noBareViewportEmInCss`, `noUndefinedTokens`, `noBareHexInCodegenOutput`, `noBareFirebaseUidInLogger`, `noStaleE2eSelectors`, `ratchetListPrecommitVsWorkflow`, `lockfileSyncWithPackageJson`, `noPathsFilterWithoutFetchDepthZero`, `cfUtilsTarballsCommitted`.
+`noBareFirebaseUidInLogger`, `cfUtilsTarballsCommitted`.
 
 ## Usage
 

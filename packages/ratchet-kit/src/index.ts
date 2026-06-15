@@ -70,6 +70,32 @@ export type { RatchetListPrecommitVsWorkflowConfig } from './ratchets/ratchet-li
 export { noUndefinedTokens, extractDefinedTokens, extractReferencedTokens } from './ratchets/no-undefined-tokens';
 export type { NoUndefinedTokensConfig } from './ratchets/no-undefined-tokens';
 
+// v0.7 additions — two cross-cutting structural gates that proved portable.
+// `archDocIntegrity` validates every `docs/architecture/*.md` (links/anchors
+// resolve, cited paths exist, mermaid renders on GitHub, footer present) — the
+// third leg of the arch-doc drift defense (playbook 04). `noAdaptiveFgOnKept-
+// LightIsland` is the dark-mode polarity gate: when dark mode is a token-value
+// swap (playbook 02), it fails any rule/modifier-run that paints an adaptive
+// foreground on a kept-light island background (the one class no token ratchet
+// catches). Both derive their config from the project's source of truth.
+export {
+  archDocIntegrity,
+  parseDoc,
+  slugify,
+  collectHeadingSlugs,
+  citedRepoPath,
+  findMermaidTraps,
+} from './ratchets/arch-doc-integrity';
+export type { ArchDocIntegrityConfig } from './ratchets/arch-doc-integrity';
+export {
+  noAdaptiveFgOnKeptLightIsland,
+  deriveAdaptiveVars,
+  findIslandPolarityViolations,
+  deriveAdaptiveSwiftTokens,
+  findSwiftIslandPolarityViolations,
+} from './ratchets/no-adaptive-fg-on-kept-light-island';
+export type { NoAdaptiveFgOnKeptLightIslandConfig } from './ratchets/no-adaptive-fg-on-kept-light-island';
+
 // Future versions graduate more ratchets as patterns prove portable across
 // downstream products. Project-specific ratchets (e.g., `no-legacy-kid-cta-token`
 // in chorz) live in the project's own src/__tests__/ — see

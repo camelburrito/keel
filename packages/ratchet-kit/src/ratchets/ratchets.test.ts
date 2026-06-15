@@ -1232,3 +1232,156 @@ describe('noUndefinedTokens', () => {
     }
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// v0.7 — arch-doc-integrity
+// ─────────────────────────────────────────────────────────────────────────────
+import {
+  slugify,
+  citedRepoPath,
+  findMermaidTraps,
+  parseDoc,
+  collectHeadingSlugs,
+} from './arch-doc-integrity';
+
+describe('arch-doc-integrity: slugify (GitHub heading-slug algorithm)', () => {
+  it('lowercases, strips punctuation, hyphenates spaces', () => {
+    expect(slugify('3.5 String Catalog')).toBe('35-string-catalog');
+    expect(slugify('`useChores` hook')).toBe('usechores-hook');
+    expect(slugify('10. Auto-schedule flow')).toBe('10-auto-schedule-flow');
+  });
+  it('does NOT collapse whitespace runs ("a + b" → a--b)', () => {
+    expect(slugify('Codebase split + cross-codebase coordination')).toBe(
+      'codebase-split--cross-codebase-coordination',
+    );
+  });
+  it('keeps Unicode letters (GitHub does too)', () => {
+    expect(slugify('Café résumé')).toBe('café-résumé');
+  });
+  it('strips emoji / trailing punctuation', () => {
+    expect(slugify('🔴 Blocker?')).toBe('-blocker');
+  });
+});
+
+describe('arch-doc-integrity: citedRepoPath', () => {
+  const top = new Set(['src', 'functions', 'packages']);
+  const eph = ['coverage/', 'dist/'];
+  it('resolves fully-qualified paths incl. file:line', () => {
+    expect(citedRepoPath('functions/src/index.ts', top, eph)).toBe('functions/src/index.ts');
+    expect(citedRepoPath('./src/ui/Button.tsx', top, eph)).toBe('src/ui/Button.tsx');
+    expect(citedRepoPath('src/ui/Button.tsx:42', top, eph)).toBe('src/ui/Button.tsx');
+    expect(citedRepoPath('src/ui/Button.tsx:10-20', top, eph)).toBe('src/ui/Button.tsx');
+  });
+  it('skips base-relative shorthand, ephemeral, and non-paths (null)', () => {
+    expect(citedRepoPath('audit/writeWithAudit.ts', top, eph)).toBeNull();
+    expect(citedRepoPath('coverage/lcov.info', top, eph)).toBeNull();
+    expect(citedRepoPath('households/{hh}/x.json', top, eph)).toBeNull();
+    expect(citedRepoPath('src/**/*.ts', top, eph)).toBeNull();
+    expect(citedRepoPath('npm run check', top, eph)).toBeNull();
+  });
+});
+
+describe('arch-doc-integrity: findMermaidTraps', () => {
+  it('flags \\n, &&, raw <tags> in node AND edge labels', () => {
+    expect(findMermaidTraps('A["line1\\nline2"]')).toHaveLength(1);
+    expect(findMermaidTraps('B["foo && bar"]')).toHaveLength(1);
+    expect(findMermaidTraps('C["<placeholder>"]')).toHaveLength(1);
+    expect(findMermaidTraps('A -->|"<b>x</b>"| B')).toHaveLength(1);
+    expect(findMermaidTraps('A((<placeholder>))')[0]).toContain('"<placeholder>"');
+  });
+  it('allows <br/> and bare edge-label pipes', () => {
+    expect(findMermaidTraps('D["line1<br/>line2"]')).toHaveLength(0);
+    expect(findMermaidTraps('A -->|yes| B')).toHaveLength(0);
+    expect(findMermaidTraps('subgraph CALL["onCall - typed callables (48)"]')).toHaveLength(0);
+  });
+});
+
+describe('arch-doc-integrity: parseDoc + collectHeadingSlugs', () => {
+  it('separates prose from fences and dedups heading slugs', () => {
+    const doc = parseDoc('# Title\n\n```mermaid\n# not a heading\n```\n\n## Overview\n## Overview\n');
+    expect(doc.fenceBlocks).toHaveLength(1);
+    const slugs = collectHeadingSlugs(doc);
+    expect(slugs.has('title')).toBe(true);
+    expect(slugs.has('overview')).toBe(true);
+    expect(slugs.has('overview-1')).toBe(true);
+    expect(slugs.has('not-a-heading')).toBe(false); // inside a fence
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// v0.7 — no-adaptive-fg-on-kept-light-island
+// ─────────────────────────────────────────────────────────────────────────────
+import {
+  deriveAdaptiveVars,
+  findIslandPolarityViolations,
+  deriveAdaptiveSwiftTokens,
+  findSwiftIslandPolarityViolations,
+} from './no-adaptive-fg-on-kept-light-island';
+
+const TOKENS_FIXTURE = JSON.stringify({
+  color: {
+    textPrimary: { alias: ['ink'] },
+    textSecondary: { alias: ['coolGray'] },
+    surface: {},
+    border: {},
+    success: {},
+    primary: {},
+    butter: {},
+    overlay: {},
+    textOnPrimary: {},
+  },
+  darkColor: {
+    textPrimary: { platforms: ['web', 'ios'] },
+    textSecondary: { platforms: ['web', 'ios'] },
+    surface: { platforms: ['web', 'ios'] },
+    border: { platforms: ['web', 'ios'] },
+    overlay: { platforms: ['web'] }, // web-only dark leaf
+  },
+});
+
+describe('no-adaptive-fg-on-kept-light-island: web', () => {
+  const ADAPTIVE = deriveAdaptiveVars(TOKENS_FIXTURE);
+  it('derives adaptive vars + aliases; islands excluded', () => {
+    expect(ADAPTIVE.has('--color-text-primary')).toBe(true);
+    expect(ADAPTIVE.has('--color-ink')).toBe(true); // alias
+    expect(ADAPTIVE.has('--color-cool-gray')).toBe(true); // alias of textSecondary
+    expect(ADAPTIVE.has('--color-success')).toBe(false); // island
+    expect(ADAPTIVE.has('--color-text-on-primary')).toBe(false);
+  });
+  it('flags adaptive fg on island bg; passes stays-* + adaptive-on-adaptive + dark-ok', () => {
+    expect(findIslandPolarityViolations('.x { background: var(--color-success); color: var(--color-text-primary); }', ADAPTIVE)).toHaveLength(1);
+    expect(findIslandPolarityViolations('.y { background: var(--color-primary); color: var(--color-surface); }', ADAPTIVE)).toHaveLength(1);
+    expect(findIslandPolarityViolations('.a { background: var(--color-success); color: var(--color-text-on-primary); }', ADAPTIVE)).toHaveLength(0);
+    expect(findIslandPolarityViolations('.b { background: var(--color-surface); color: var(--color-text-primary); }', ADAPTIVE)).toHaveLength(0);
+    expect(findIslandPolarityViolations('.c { background: var(--color-success); color: var(--color-ink); /* dark-ok: translucent wash */ }', ADAPTIVE)).toHaveLength(0);
+    expect(findIslandPolarityViolations('.d { background: var(--color-success); color: var(--color-ink); /* dark-ok */ }', ADAPTIVE)).toHaveLength(1); // bare dark-ok no reason
+  });
+});
+
+describe('no-adaptive-fg-on-kept-light-island: Swift', () => {
+  const ADAPTIVE = deriveAdaptiveSwiftTokens(TOKENS_FIXTURE);
+  it('derives ios-platform adaptive set; web-only leaf excluded', () => {
+    expect(ADAPTIVE.has('textPrimary')).toBe(true);
+    expect(ADAPTIVE.has('ink')).toBe(true);
+    expect(ADAPTIVE.has('overlay')).toBe(false); // web-only dark leaf
+    expect(ADAPTIVE.has('butter')).toBe(false); // island
+  });
+  it('flags adaptive fg + island bg in one run; skips conditional + honors dark-ok', () => {
+    const viol = (s: string) => findSwiftIslandPolarityViolations(s, ADAPTIVE);
+    expect(viol('Text("x")\n    .foregroundStyle(Colors.ink)\n    .background(Colors.butter)')).toHaveLength(1);
+    expect(viol('Text("x")\n    .foregroundStyle(Colors.ink)\n    .background(\n        RoundedRectangle()\n            .fill(Colors.butter)\n    )')).toHaveLength(1);
+    expect(viol('Text("x")\n    .foregroundStyle(Colors.surface)\n    .background(Colors.surface)')).toHaveLength(0);
+    expect(viol('Text("x")\n    .foregroundStyle(isActive ? .white : Colors.ink)\n    .background(isActive ? Colors.primary : Colors.butter)')).toHaveLength(0); // conditional ceiling
+    expect(viol('Text("x")\n    .foregroundStyle(Colors.ink)\n    // dark-ok: translucent wash\n    .background(Colors.butter)')).toHaveLength(0);
+    expect(viol('Text("x")\n    .foregroundStyle(Colors.ink)\n    // dark-ok\n    .background(Colors.butter)')).toHaveLength(1); // bare dark-ok
+  });
+});
+
+describe('no-adaptive-fg-on-kept-light-island: deriveAdaptiveSwiftTokens platforms-absent', () => {
+  it('treats a darkColor leaf with NO platforms array as adaptive (all-platforms)', () => {
+    const t = JSON.stringify({ color: { foo: { alias: ['bar'] } }, darkColor: { foo: {} } });
+    const set = deriveAdaptiveSwiftTokens(t);
+    expect(set.has('foo')).toBe(true); // absent platforms → included
+    expect(set.has('bar')).toBe(true); // alias included too
+  });
+});

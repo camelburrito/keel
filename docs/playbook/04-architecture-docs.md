@@ -9,10 +9,11 @@
 
 A subsystem reverse-engineered from 20+ files takes hours per pass. Anyone — you in 6 months, a collaborator, a Claude session resumed cold — will do that reverse-engineering badly the first time and waste a day catching back up to what was already known. The fix is canonical `docs/architecture/<system>.md` per major subsystem, read first, then read code.
 
-Drift is the failure mode. Architecture docs that ship inaccurate after 3 months of code changes are worse than no docs — they mislead the reader into trusting a stale model. Two structural mechanisms catch drift:
+Drift is the failure mode. Architecture docs that ship inaccurate after 3 months of code changes are worse than no docs — they mislead the reader into trusting a stale model. Three structural mechanisms catch drift:
 
 1. **Citation hook** — a PostToolUse Claude Code hook flags edits to files cited by name in any arch doc. Prompts the editor to re-anchor the doc in the same PR.
 2. **Value-based parsers** — vitest tests that parse the doc AND the source of truth, then assert claims match. Catches drift the citation hook can't see (counts, rate limits, version numbers).
+3. **Integrity ratchet** — `archDocIntegrity` from `@camelburrito/ratchet-kit` asserts every citation a doc makes RESOLVES: links + anchors point at real files/headings, inline cited paths exist on disk, mermaid renders on GitHub, footer present.
 
 ---
 
@@ -23,11 +24,13 @@ Drift is the failure mode. Architecture docs that ship inaccurate after 3 months
 - Each doc carries a `Last updated: YYYY-MM-DD (<phase or quick name>)` footer; re-anchor it when you ship a change that affects the system.
 - PostToolUse hook at `.claude/hooks/architecture-doc-drift.sh` — flags edits to files cited by name in any arch doc.
 - Value-based parsers for claims the citation hook can't catch (counts, rate limits, version numbers). Chorz's `arch-doc-cf-claims.test.ts` is the canonical example.
+- `archDocIntegrity` from `@camelburrito/ratchet-kit` wired into the ratchet suite — every link/anchor/cited-path resolves, mermaid has no renderer traps, footer present. Strict-zero.
+- The authoring contract itself: see [`templates/_AUTHORING.md`](../../templates/_AUTHORING.md) — the four principles, the mechanical/judgment split, the pre-PR checklist.
 - Updates land **in the same PR** as the code change — never deferred to a follow-up.
 
 ---
 
-## 2. The two-tier drift defense
+## 2. The three-tier drift defense
 
 ### Tier 1 — citation hook
 
@@ -42,6 +45,17 @@ The citation hook only fires on path-cited files. For claims that aren't file-ci
 - `chorz/src/__tests__/arch-doc-cf-claims.test.ts` — parses `functions/src/**/*.ts` for ground truth (onCall handler count, per-CF `checkRateLimit` values), then parses `docs/architecture/cloud-functions.md`, then asserts claims match. Failure message points at exactly which claim drifted with the new value to drop in.
 
 The pattern is generalizable: for any documented numeric claim ("we have N CFs", "K database collections", "M strict-zero ratchets in the pre-commit list"), write a parser that reads the source AND the doc claim and asserts equality. Strict-zero from day 1 — there's no carve-out for "stale claim, will fix later" because the carve-out IS the bug.
+
+### Tier 3 — integrity ratchet
+
+The citation hook and value parsers both assume the doc's _structure_ is sound — that a `[link](#anchor)` actually points somewhere, that an inline `` `path/to/file.ext` `` citation names a real file, that a mermaid block renders. None of them check that. That structural class is the most mechanical and the most common: a heading-slug anchor that doesn't exist, a relative link to a moved file, a fabricated-by-paraphrase path citation, a node label carrying a GitHub-renderer trap (`\n`, `&&`, an unescaped `<tag>` that silently drops the text). `archDocIntegrity` from `@camelburrito/ratchet-kit` closes it:
+
+- **Links + anchors resolve** — `[text](./other.md)` to a real file; `[text](#anchor)` and `[text](./other.md#anchor)` to a real heading, slugged with GitHub's exact algorithm (so an editor-valid link that 404s on GitHub is caught).
+- **Cited paths exist** — any inline `` `code` `` span that is a fully-qualified repo path (real top-level dir + source extension, incl. the `file.ext:42` line-reference form) must name a file on disk. Base-relative shorthand and generated/ephemeral build outputs are skipped.
+- **Mermaid renders on GitHub** — node and pipe-delimited edge labels are scanned for `\n` (use `<br/>`), `&&` (renders as an HTML entity), and raw `<tag>`s other than `<br/>` (GitHub drops them).
+- **Footer present** — every doc except `README.md` carries a `Last updated` line.
+
+Strict-zero from day 1: the carve-out for "broken link, will fix later" IS the bug. The judgment half of the contract — readable intros, content-named sections, a diagram per subsystem, grounded claims — can't be mechanized and lives in [`templates/_AUTHORING.md`](../../templates/_AUTHORING.md) + the pre-PR checklist there.
 
 ---
 
@@ -134,6 +148,8 @@ For PRs touching UI, the pre-merge checklist's "Architecture docs" section asks 
 - [ ] First arch doc when first subsystem stabilizes (don't write aspirational docs for systems that don't exist yet).
 - [ ] `.claude/hooks/architecture-doc-drift.sh` from template, wired in `.claude/settings.json`.
 - [ ] Value-based parser test for any doc that cites numeric claims (counts, rate limits, version numbers).
+- [ ] `archDocIntegrity` from `@camelburrito/ratchet-kit` wired into the ratchet suite (links/anchors/cited-paths/mermaid/footer — strict-zero).
+- [ ] `templates/_AUTHORING.md` copied to `docs/architecture/_AUTHORING.md` — the authoring contract authors read before editing any doc.
 - [ ] User-memory rule `feedback_ask_skills_arch_docs` loaded — surfaces "do skills or arch docs need updates?" before every PR ships.
 
 ---

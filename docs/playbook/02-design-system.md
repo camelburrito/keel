@@ -128,6 +128,94 @@ A pattern that's introduced inline in a feature (and survives one cycle of "we k
 
 ---
 
+## 7. Dark mode as a token-value swap (+ the kept-light-island polarity gate)
+
+### The principle
+
+Dark mode is not a parallel stylesheet, a second theme file, or a per-component override. It is a **token-value swap**: because feature code may never use a bare color (Mandate 1 — every color is a `--color-*` custom property on web / a `Colors.*` reference on iOS), inverting the canvas mostly means redefining a small set of **structural color tokens** under a selector. Everything else stays put.
+
+Partition the palette into two classes:
+
+- **Adaptive tokens** — the handful of structural colors that *do* invert: `text-primary` / `ink` → near-white, `surface` / `background` → dark, `border` → dark slate, `text-secondary` / `cool-gray` → light. These are authored as a separate `darkColor` block in `tokens.json`.
+- **Kept-light islands** — every *other* color token: pastels, brand accents, status chips, role chips, badges, icon tiles, the primary CTA. These do **not** invert. A dark glyph on a light pastel reads correctly on a dark canvas, so the island stays light by design.
+
+### Cross-platform model
+
+Same source, different encoding — the same model as every other token (see § 3 Cross-platform parity).
+
+- **Web:** the `darkColor` block emits a second declaration of the adaptive vars under `[data-theme="dark"]` (explicit opt-in) and a system-default branch gated on `prefers-color-scheme: dark`. Feature CSS is untouched — it already references the vars.
+- **iOS:** codegen emits the adaptive leaves as an adaptive `Color` (a `light:dark:` pair resolved by the OS); every other `Colors.*` leaf is a static literal island. Same partition, derived from the same `darkColor` keys.
+- **Hard shadows / brutalist accents** that previously baked the ink hex at codegen time must emit a *token reference* (`var(--color-text-primary)` / `Colors.ink`) instead, so they re-theme with the adaptive ink rather than going invisible on a dark canvas. Light output stays byte-identical (the adaptive ink equals the border ink in light).
+
+### Runtime toggle + FOUC guard
+
+- A tiny store (web: a `localStorage`-backed value applied to `<html data-theme>`; iOS: `@AppStorage` driving `preferredColorScheme`) with a shared storage key and a `light | dark | system` tri-state.
+- An **`index.html` FOUC guard** applies the stored theme *before first paint* (inline script reads `localStorage` and sets `data-theme` synchronously), so the page never flashes light-then-dark on load.
+- The hand-authored token wrapper additionally sets the CSS `color-scheme` property under the same selectors so native controls (scrollbars, `<select>`, caret, date pickers) render in matching chrome.
+
+### The bug class this introduces
+
+A token-value swap creates exactly one new failure mode that every existing ratchet is blind to: **an adaptive foreground painted on a kept-light island**. Both directions of it vanish specifically in dark:
+
+- `color: var(--color-text-primary)` on `background: var(--color-success)` → near-white-on-mint (the light-mode intent was dark-on-mint).
+- `color: var(--color-surface)` on `background: var(--color-primary)` → flips white-on-pink (light) to dark-on-pink (dark).
+
+Every prior ratchet checks that a color flows *through a token*; none check that the **right** token is used for the context. The fix is a **`STAYS-*` token** — a foreground token that is `#`-identical to its adaptive twin *in light* but does not carry a dark override (e.g. a `*-foreground` / `*-text` partner that stays dark ink on pastels, or a `text-on-primary` that stays white on saturated brand fills). Because it equals the adaptive value in light, light goldens never churn when you migrate to it.
+
+### Enforcement: `noAdaptiveFgOnKeptLightIsland`
+
+The `noAdaptiveFgOnKeptLightIsland` ratchet (`@camelburrito/ratchet-kit`) is the guard for this one bug class. It runs on both platforms from a single source of truth:
+
+- **Web:** scans each `*.module.css` rule and fails when one declaration sets a `background` / `background-color` to a *non-adaptive* `--color-*` var **and** sets `color` to an *adaptive* one (catches both polarities).
+- **iOS:** `findSwiftIslandPolarityViolations` scans contiguous SwiftUI modifier runs (one run = one view) and fails when a literal `.foregroundStyle/.foregroundColor(Colors.<adaptive>)` co-locates with a `.background(…Colors.<island>…)` in the same run.
+- **Self-deriving adaptive set:** the notion of "adaptive" is *derived from the `darkColor` token keys + their `color.*` aliases* — add or remove a dark override and the ratchet updates automatically. No hardcoded list, and the web and iOS scanners can never disagree on what "adaptive" means.
+- **Escape valve:** a translucent island over an adaptive surface (a pastel at low opacity that reads as a wash, not a solid) can legitimately carry adaptive ink. Opt out with `/* dark-ok: <reason> */` (web) or `// dark-ok: <reason>` (iOS) — the rationale is **required**; a bare or empty `dark-ok` does not exempt (mirrors the `no-console` rationale convention).
+
+### The honest ceiling
+
+Static analysis sees only the **co-located** case (background + foreground in the same CSS rule / same modifier run), which is the majority of real sites. It cannot pair a **JS/TS-computed inline background**, a **cross-rule cascade** (background on parent, foreground on child), a `background-image` gradient, or a `fill` / `border-color` foreground. An adaptive *border* on a pastel island is left uncovered on purpose — it's a correct by-design inversion, not a bug. The residual is covered by **dark-render snapshot goldens** plus an **auto-run dark-mode e2e spec**, grown per-surface as dark coverage matures. Document the ceiling in the ratchet header so the next contributor knows what the gate does and does not catch. Where a platform pins a single scheme (e.g. a tvOS target at `.preferredColorScheme(.light)`), the bug class can't occur and that target is excluded from the scan.
+
+---
+
+## 8. Typography & sizing foundation
+
+### The principle
+
+A type scale is a **composite token layer**, not a pile of loose `font-size` declarations. The canonical failure mode is a heading that sets `font-size` but silently ships no `line-height` (or sets letter-spacing on one platform but not the other). The fix is to bundle size + line-height + weight + tracking as a *set* that always travels together, authored once and emitted to every platform — the same source-of-truth model as colors and spacing.
+
+### Composite `textStyle.*` levels
+
+Add a `typography.textStyle.*` group to `tokens.json` as a composite layer *over* the flat `fontSize` / `lineHeight` / `fontWeight` / `tracking` primitives — each level references the primitives, it does not introduce new magnitudes. Use a small set of platform-neutral semantic role levels (e.g. `display` / `heading` / `title` / `subtitle` / `body` / `caption` / `micro`) rather than raw sizes, so consumers ask for an *intent* and the scale owns the values.
+
+Emit each level to both platforms in the form that platform reads natively:
+
+- **Web:** per-axis custom properties `--text-{level}-{size|leading|weight|tracking}`. Consume the `size`+`leading` pair together on headings; do **not** use the CSS `font` shorthand — it silently drops `letter-spacing`.
+- **iOS:** a generated `TypeStyles.{level}` struct, consumed through a *hand-written* `.typeStyle(_:)` `@ScaledMetric` ViewModifier that applies font + line-spacing + tracking in lockstep with Dynamic Type (only a ViewModifier can host `@ScaledMetric` stored props, so this one consumer is hand-written; the values are still generated).
+
+### Letter-spacing authored once, in `em`
+
+**Tracking is authored once, in `em`** — the only scale-invariant unit for letter-spacing (it's relative to the font size, so the same value is correct at every level) — and emitted to both platforms from that single source: web uses the `em` value verbatim as `letter-spacing`; iOS converts to points at codegen (`tracking_pt = trackingEm × fontSize.px`). This closes the asymmetry where one platform's headings have letter-spacing and the other's don't. Authoring in `px`/`pt` per platform is the anti-pattern: it drifts and double-encodes the same intent.
+
+### Button-sizing a11y rule
+
+Buttons are **content-sized** (text + padding), not fixed-dimension. Every button size variant must floor at a **44px/pt minimum touch target** (a dedicated `touch-target-min` / `minTouchTarget` token) and couple `line-height` to the text box. Buttons must **not** borrow `avatar-size-*` tokens — avatars are fixed-dimension circles, and borrowing their sizes is both a semantic category error and a WCAG 2.5.5 violation at small sizes (a 28px button fails the target floor). When a product has a hand-rolled button family (admin buttons, compact toolbars), fold it into the generic `Button` with a `compact` size + extra variants rather than maintaining a parallel atom.
+
+---
+
+## 9. Driving the primitive-hierarchy ratchet to strict-zero (addendum to Mandate 2)
+
+This is not a new mandate — it's the move that takes the **Hierarchy Mandate** (§ 1, Mandate 2) the last mile, from "mostly enforced with a baseline carve-out" to `EXPECTED_COUNTS = {}` on the `no-bare-primitive-in-features` ratchet (web) and its Swift twin. The blocker to strict-zero is almost always a tail of bare `<button>` / `<input>` sites in feature code that *can't* adopt the chromed L3 `Button` / `Input` because they're genuinely consumer-styled or have a non-standard shape. The answer is not to keep baselining them — it's to give the hierarchy the L2/L3 atoms it was missing.
+
+**The move:**
+
+1. **Add an L2 unstyled base.** A `Pressable` button base (MUI-`ButtonBase` pattern): `type="button"` by default + `ref` / `className` / ARIA passthrough, **no imposed style**. This is the composition point for genuinely consumer-styled affordances — the last bare `<button>` sites route through it keeping their existing class, byte-identical, while still being a hierarchy citizen rather than a raw primitive.
+2. **Add small extraction atoms** for the recurring non-button primitives the tail revealed — e.g. `Slider` (L2 range input), `FileInput` (L2 hidden file input driven by a visible trigger), `SegmentedControl` (L3 tablist), `PickerTile` (L3 selectable grid tile). Each is a one-time promotion that removes a whole class of bare-primitive sites.
+3. **Migrate the tail** onto the new atoms and **flip the ratchet to strict-zero** (`EXPECTED_COUNTS = {}`) in the same change, so any *new* bare `<button>` / `<input>` (or `<select>` / `<dialog>`) in feature code fails on the first commit.
+
+**Watch the WAI-ARIA APG contract.** An L3 composite that wraps a native interaction pattern owes the full keyboard contract — e.g. a `SegmentedControl` standing in for a tablist must implement the APG tablist pattern: roving `tabindex`, Arrow/Home/End to move focus, and (for a control whose change is destructive) **manual** activation so arrow-key *exploration* doesn't fire `onChange` until the user commits with Enter/click. Adding the atom without the keyboard contract trades a styling violation for an accessibility one. The same applies to `PickerTile` (`aria-pressed` / `aria-selected`) and any other composite that replaces a primitive's built-in semantics.
+
+Mirror the same move on iOS: migrate the last bare `TextField` / `Toggle` / `Picker` sites onto the native-shell-wrapping atoms (`Input` / `Toggle` / `Dropdown`) so the Swift Dimension-C ratchet also reaches strict-zero. Both platforms strict-zero is the goal — at that point the hierarchy is structurally complete and no feature can reintroduce a raw primitive.
+
 ## Reference reading
 
 - `chorz/shared/tokens/tokens.json` — token source of truth
