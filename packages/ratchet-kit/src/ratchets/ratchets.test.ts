@@ -1376,3 +1376,12 @@ describe('no-adaptive-fg-on-kept-light-island: Swift', () => {
     expect(viol('Text("x")\n    .foregroundStyle(Colors.ink)\n    // dark-ok\n    .background(Colors.butter)')).toHaveLength(1); // bare dark-ok
   });
 });
+
+describe('no-adaptive-fg-on-kept-light-island: deriveAdaptiveSwiftTokens platforms-absent', () => {
+  it('treats a darkColor leaf with NO platforms array as adaptive (all-platforms)', () => {
+    const t = JSON.stringify({ color: { foo: { alias: ['bar'] } }, darkColor: { foo: {} } });
+    const set = deriveAdaptiveSwiftTokens(t);
+    expect(set.has('foo')).toBe(true); // absent platforms → included
+    expect(set.has('bar')).toBe(true); // alias included too
+  });
+});
