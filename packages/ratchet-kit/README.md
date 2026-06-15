@@ -31,6 +31,9 @@ Configurable strict-zero ratchet templates for keel-derived projects.
 | `noBareFontSizeInSwift` | v0.3 | `.system(size: N)`, `.custom(..., size: N)`, `UIFont.systemFont(ofSize: N)`, `UIFont(name:size:)` |
 | `noBareColorConstructorInSwift` | v0.3 | bare `Color(red: <numeric>, ...)` constructor calls |
 
+| `archDocIntegrity` | v0.7 | every `docs/architecture/*.md`: links/anchors resolve (GitHub-exact slug), fully-qualified cited paths exist (incl. `file:line`), mermaid renders, footer present. Config: `{ archDir, repoRoot, topLevelDirs, ephemeralPrefixes? }`. |
+| `noAdaptiveFgOnKeptLightIsland` | v0.7 | dark-mode polarity: fails a CSS rule / SwiftUI modifier-run that paints an adaptive foreground on a kept-light island background. Adaptive set self-derived from `tokens.json` `darkColor`. Config: `{ tokensJsonPath, cssRoot?, swiftRoots? }`. |
+
 **On the roadmap (graduate from chorz as patterns prove portable):**
 
 `noBareFontPropertyInCss`, `noBareViewportEmInCss`, `noUndefinedTokens`, `noBareHexInCodegenOutput`, `noBareFirebaseUidInLogger`, `noStaleE2eSelectors`, `ratchetListPrecommitVsWorkflow`, `lockfileSyncWithPackageJson`, `noPathsFilterWithoutFetchDepthZero`, `cfUtilsTarballsCommitted`.
