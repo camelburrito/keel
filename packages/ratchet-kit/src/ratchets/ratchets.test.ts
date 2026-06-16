@@ -1322,6 +1322,12 @@ describe('arch-doc-integrity: findMermaidTraps', () => {
     expect(findMermaidTraps('---\ntitle: Flow\n---\nsequenceDiagram\n  Note over X: a; b')).toHaveLength(1);
     // ";" inside a %% comment is ignored (mermaid drops comments):
     expect(findMermaidTraps('sequenceDiagram\n  %% note: a; b\n  X->>Y: ping')).toHaveLength(0);
+    // entity refs parse fine yet carry a trailing ";" — NOT flagged (incl. the #quot; escape):
+    expect(findMermaidTraps('sequenceDiagram\n  Note over X: emit #quot;done#quot; now')).toHaveLength(0);
+    expect(findMermaidTraps('sequenceDiagram\n  Note over X: love #9829; it')).toHaveLength(0);
+    expect(findMermaidTraps('sequenceDiagram\n  Note over X: dash &#8212; here')).toHaveLength(0);
+    // a real ";" alongside an entity is still caught:
+    expect(findMermaidTraps('sequenceDiagram\n  Note over X: #quot;a#quot;; then b')).toHaveLength(1);
   });
 });
 

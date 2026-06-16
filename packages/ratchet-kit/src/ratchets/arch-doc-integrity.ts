@@ -196,8 +196,13 @@ export function findMermaidTraps(body: string): string[] {
     }
     // `;` is a statement separator in sequenceDiagram — breaks message/note text
     // AND colon-less guard lines (`loop a; b`). Whole-line scan; skip `%%`
-    // comments (mermaid ignores them). No legit sequence statement uses `;`.
-    if (isSequence && !line.trim().startsWith('%%') && line.includes(';')) {
+    // comments (mermaid ignores them). Entity refs (`#quot;`, `#9829;`, and the
+    // `#NNN;` tail of `&#8212;` / `&#x2014;`) parse fine yet carry a trailing
+    // `;`, so strip them first — otherwise the `#quot;` escape this gate itself
+    // recommends would be falsely flagged inside a note. (Named HTML entities
+    // like `&amp;` genuinely break and are left to trip the rule.)
+    const semiScan = line.match(/#\w+;/g) ? line.replace(/#\w+;/g, '') : line;
+    if (isSequence && !line.trim().startsWith('%%') && semiScan.includes(';')) {
       traps.push(`line +${i}: sequence line "${line.trim()}" contains ";" (statement separator — use "," or "—")`);
     }
   }
