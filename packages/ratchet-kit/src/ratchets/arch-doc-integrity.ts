@@ -186,8 +186,12 @@ export function findMermaidTraps(body: string): string[] {
     dottedEdgeRe.lastIndex = 0;
     while ((m = dottedEdgeRe.exec(line)) !== null) {
       const edgeLabel = m[1] ?? '';
-      if (edgeLabel.includes('.')) {
-        traps.push(`line +${i}: dotted-edge label "${edgeLabel}" contains a "." (breaks the .-> lexer — reword without a period)`);
+      // A QUOTED dotted-edge label (`-. "a.b" .->`) parses fine — quotes rescue
+      // the period — so flag only an UNquoted label.
+      const t = edgeLabel.trim();
+      const quoted = t.length >= 2 && t.startsWith('"') && t.endsWith('"');
+      if (!quoted && edgeLabel.includes('.')) {
+        traps.push(`line +${i}: dotted-edge label "${edgeLabel}" contains a "." (breaks the .-> lexer — reword without a period, or quote the label)`);
       }
     }
     // `;` is a statement separator in sequenceDiagram — breaks message/note text

@@ -1307,6 +1307,9 @@ describe('arch-doc-integrity: findMermaidTraps', () => {
     expect(findMermaidTraps('flowchart TB\n  RATCHET -.locks consumers.-> WUSE')).toHaveLength(0);
     // chained unlabeled dotted arrows must not span across arrowheads (`>`-exclusion):
     expect(findMermaidTraps('flowchart TB\n  I2 -.->|previous| I1 -.->|previous| ROOT')).toHaveLength(0);
+    // a QUOTED dotted-edge label with a period parses fine (quotes rescue it); unquoted is the trap:
+    expect(findMermaidTraps('flowchart TB\n  A -. "x.y" .-> B')).toHaveLength(0);
+    expect(findMermaidTraps('flowchart TB\n  A -. x.y .-> B')).toHaveLength(1);
     // ";" in sequenceDiagram message / note text is a statement separator:
     expect(findMermaidTraps('sequenceDiagram\n  Note over X: claims live; route guards pass')).toHaveLength(1);
     expect(findMermaidTraps('sequenceDiagram\n  X->>Y: success; onSnapshot fires')).toHaveLength(1);
