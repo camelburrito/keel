@@ -1344,8 +1344,13 @@ describe('arch-doc-integrity: findContrastTraps (dark-mode legibility)', () => {
     expect(findContrastTraps('  classDef ok color:#2B2D42,fill:#98F5E1;')).toHaveLength(0);
     // no fill → keeps the theme's own legible fill+text pairing, exempt:
     expect(findContrastTraps('  classDef gap stroke:#888,stroke-dasharray: 4 4;')).toHaveLength(0);
-    // non-classDef lines are ignored:
+    // a per-node `style` directive is scanned too (same dark-mode risk):
+    expect(findContrastTraps('  style n1 fill:#BDEBFF,stroke:#2B2D42;')).toHaveLength(1);
+    expect(findContrastTraps('  style n1 fill:#BDEBFF,stroke:#2B2D42;')[0]).toContain('style "n1"');
+    expect(findContrastTraps('  style n1 fill:#BDEBFF,color:#2B2D42;')).toHaveLength(0);
+    // non-classDef/style lines are ignored (incl. a node id starting with "style"):
     expect(findContrastTraps('  A["fill:#fff in prose"] --> B')).toHaveLength(0);
+    expect(findContrastTraps('  styleNode["fill:#fff label"] --> B')).toHaveLength(0);
   });
 });
 

@@ -224,12 +224,15 @@ export function findContrastTraps(body: string): string[] {
   const lines = body.split('\n');
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i] ?? '';
-    if (!/^\s*classDef\b/.test(line)) continue;
+    // A `classDef` OR a per-node `style` directive — both can pin a custom fill.
+    if (!/^\s*(?:classDef|style)\b/.test(line)) continue;
     if (!/\bfill:\s*#[0-9A-Fa-f]{3,8}\b/.test(line)) continue;
     if (/\bcolor:/.test(line)) continue;
-    const name = (line.match(/classDef\s+(\S+)/) ?? [])[1] ?? '?';
+    const m = line.match(/^\s*(classDef|style)\s+(\S+)/);
+    const kind = m?.[1] ?? 'classDef';
+    const name = m?.[2] ?? '?';
     traps.push(
-      `line +${i}: classDef "${name}" sets a fill but no text color (pin color:#... so node text stays legible in GitHub dark mode)`,
+      `line +${i}: ${kind} "${name}" sets a fill but no text color (pin color:#... so node text stays legible in GitHub dark mode)`,
     );
   }
   return traps;
