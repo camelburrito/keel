@@ -1351,6 +1351,8 @@ describe('arch-doc-integrity: findContrastTraps (dark-mode legibility)', () => {
     // non-classDef/style lines are ignored (incl. a node id starting with "style"):
     expect(findContrastTraps('  A["fill:#fff in prose"] --> B')).toHaveLength(0);
     expect(findContrastTraps('  styleNode["fill:#fff label"] --> B')).toHaveLength(0);
+    // `linkStyle` must NOT over-match `style` (the ^\s* anchor guards this):
+    expect(findContrastTraps('  linkStyle 0 stroke:#f00,fill:#BDEBFF')).toHaveLength(0);
   });
 });
 
