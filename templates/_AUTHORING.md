@@ -67,7 +67,8 @@ is strict-zero: zero violations, always.
   text vanishes), or a backslash-escaped quote `\"` (mermaid has no `\"` escape —
   use the `#quot;` entity); plus a `.` inside a `-. dotted .->` edge label (the
   `.->` close token is lexed on the first `.`, aborting the parse) and a `;` in
-  sequenceDiagram message/note text (a statement separator — use `,` or `—`).
+  any sequenceDiagram line — message/note text or a colon-less `loop`/`alt`
+  guard (a statement separator — use `,` or `—`).
 - **Footer present.** Every doc except `README.md` ends with a
   `**Last updated:** YYYY-MM-DD` line. Re-anchor it when you ship a change.
 
