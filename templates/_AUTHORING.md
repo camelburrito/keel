@@ -68,7 +68,11 @@ is strict-zero: zero violations, always.
   use the `#quot;` entity); plus a `.` inside a `-. dotted .->` edge label (the
   `.->` close token is lexed on the first `.`, aborting the parse) and a `;` in
   any sequenceDiagram line — message/note text or a colon-less `loop`/`alt`
-  guard (a statement separator — use `,` or `—`).
+  guard (a statement separator — use `,` or `—`). It also flags a `classDef`
+  that sets a `fill:` but no text `color:` — GitHub's dark theme paints that
+  node's label light-on-light-pastel (illegible), so pin an explicit `color:`
+  (a dark ink on the pastel fills, `#fff` on a saturated one) to make the text
+  theme-independent.
 - **Footer present.** Every doc except `README.md` ends with a
   `**Last updated:** YYYY-MM-DD` line. Re-anchor it when you ship a change.
 

@@ -38,7 +38,7 @@ Configurable strict-zero ratchet templates for keel-derived projects.
 | `lockfileSyncWithPackageJson` | v0.5 | per-codebase `package-lock.json` carries every `package.json` dependency |
 | `ratchetListPrecommitVsWorkflow` | v0.5 | the pre-commit hook + CI workflow run the same ratchet set (drift gate) |
 | `noUndefinedTokens` | v0.6 | `var(--xyz)` references in consumer CSS resolve to declared tokens |
-| `archDocIntegrity` | v0.7 | every `docs/architecture/*.md`: links/anchors resolve (GitHub-exact slug), fully-qualified cited paths exist (incl. `file:line`), mermaid has no GitHub-renderer traps (`\n`→`<br/>`, `&&`, raw `<tag>`, `\"`→`#quot;`, a `.` in a `-. dotted .->` edge label, `;` in sequenceDiagram text), footer present. Config: `{ archDir, repoRoot, topLevelDirs, ephemeralPrefixes? }`. |
+| `archDocIntegrity` | v0.7 | every `docs/architecture/*.md`: links/anchors resolve (GitHub-exact slug), fully-qualified cited paths exist (incl. `file:line`), mermaid has no GitHub-renderer traps (`\n`→`<br/>`, `&&`, raw `<tag>`, `\"`→`#quot;`, a `.` in a `-. dotted .->` edge label, `;` in sequenceDiagram text), every filled mermaid `classDef` pins a text `color:` (dark-mode legibility), footer present. Config: `{ archDir, repoRoot, topLevelDirs, ephemeralPrefixes? }`. |
 | `noAdaptiveFgOnKeptLightIsland` | v0.7 | dark-mode polarity: fails a CSS rule / SwiftUI modifier-run that paints an adaptive foreground on a kept-light island background. Adaptive set self-derived from `tokens.json` `darkColor`. Config: `{ tokensJsonPath, cssRoot?, swiftRoots? }`. |
 
 **On the roadmap (graduate from chorz as patterns prove portable):**

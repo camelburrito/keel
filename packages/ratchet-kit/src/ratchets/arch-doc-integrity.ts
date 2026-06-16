@@ -209,6 +209,32 @@ export function findMermaidTraps(body: string): string[] {
   return traps;
 }
 
+/**
+ * Mermaid dark-mode legibility. A `classDef` that sets a custom `fill:` but no
+ * text `color:` renders its node label in the active THEME's default text color
+ * — which GitHub flips to LIGHT in dark mode. With a light fill that yields
+ * light-on-light (illegible); the light-mode default was dark text, which masks
+ * the gap until the dark theme renders. Pinning an explicit `color:` makes the
+ * label theme-independent. Strict-zero: every filled classDef must pin a color.
+ * A classDef with no `fill:` keeps the theme's own fill+text pairing (legible in
+ * both modes), so it is exempt.
+ */
+export function findContrastTraps(body: string): string[] {
+  const traps: string[] = [];
+  const lines = body.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] ?? '';
+    if (!/^\s*classDef\b/.test(line)) continue;
+    if (!/\bfill:\s*#[0-9A-Fa-f]{3,8}\b/.test(line)) continue;
+    if (/\bcolor:/.test(line)) continue;
+    const name = (line.match(/classDef\s+(\S+)/) ?? [])[1] ?? '?';
+    traps.push(
+      `line +${i}: classDef "${name}" sets a fill but no text color (pin color:#... so node text stays legible in GitHub dark mode)`,
+    );
+  }
+  return traps;
+}
+
 // First meaningful diagram-type line, skipping a leading `%%`-comment /
 // `%%{init}%%` directive and a `---\n…\n---` frontmatter block.
 function mermaidDiagramType(lines: string[]): string {
@@ -313,10 +339,13 @@ export function archDocIntegrity(config: ArchDocIntegrityConfig): void {
       }
     }
 
-    // (4) Mermaid renderer traps.
+    // (4) Mermaid renderer traps + (4b) dark-mode contrast (filled classDef must pin a text color).
     for (const block of parsed.fenceBlocks) {
       if (block.lang !== 'mermaid') continue;
       for (const trap of findMermaidTraps(block.body)) {
+        violations.push(`${rel} (mermaid @ ${block.startLine}) ${trap}`);
+      }
+      for (const trap of findContrastTraps(block.body)) {
         violations.push(`${rel} (mermaid @ ${block.startLine}) ${trap}`);
       }
     }

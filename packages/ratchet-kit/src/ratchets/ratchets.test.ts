@@ -1240,6 +1240,7 @@ import {
   slugify,
   citedRepoPath,
   findMermaidTraps,
+  findContrastTraps,
   parseDoc,
   collectHeadingSlugs,
 } from './arch-doc-integrity';
@@ -1328,6 +1329,23 @@ describe('arch-doc-integrity: findMermaidTraps', () => {
     expect(findMermaidTraps('sequenceDiagram\n  Note over X: dash &#8212; here')).toHaveLength(0);
     // a real ";" alongside an entity is still caught:
     expect(findMermaidTraps('sequenceDiagram\n  Note over X: #quot;a#quot;; then b')).toHaveLength(1);
+  });
+});
+
+describe('arch-doc-integrity: findContrastTraps (dark-mode legibility)', () => {
+  it('flags a filled classDef with no text color; allows fill+color and bare stroke', () => {
+    // filled but no color: → illegible in GitHub dark mode:
+    expect(findContrastTraps('  classDef ok fill:#98F5E1,stroke:#2B2D42,stroke-width:2px;')).toHaveLength(1);
+    expect(findContrastTraps('  classDef ok fill:#98F5E1,stroke:#2B2D42;')[0]).toContain('"ok"');
+    // fill + pinned color → the fix (dark text or white text), not flagged:
+    expect(findContrastTraps('  classDef ok fill:#98F5E1,color:#2B2D42,stroke:#2B2D42;')).toHaveLength(0);
+    expect(findContrastTraps('  classDef src fill:#f53d6b,color:#fff,stroke:#2B2D42,stroke-width:3px;')).toHaveLength(0);
+    // order-independent:
+    expect(findContrastTraps('  classDef ok color:#2B2D42,fill:#98F5E1;')).toHaveLength(0);
+    // no fill → keeps the theme's own legible fill+text pairing, exempt:
+    expect(findContrastTraps('  classDef gap stroke:#888,stroke-dasharray: 4 4;')).toHaveLength(0);
+    // non-classDef lines are ignored:
+    expect(findContrastTraps('  A["fill:#fff in prose"] --> B')).toHaveLength(0);
   });
 });
 
