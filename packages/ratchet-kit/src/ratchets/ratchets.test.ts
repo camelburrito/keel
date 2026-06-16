@@ -1294,6 +1294,24 @@ describe('arch-doc-integrity: findMermaidTraps', () => {
     expect(findMermaidTraps('A -->|yes| B')).toHaveLength(0);
     expect(findMermaidTraps('subgraph CALL["onCall - typed callables (48)"]')).toHaveLength(0);
   });
+  it('flags the 3 grounded GitHub-only traps: escaped quote, dotted-edge period, sequence ";"', () => {
+    // backslash-escaped quote in a node label (mermaid has no \" escape):
+    expect(findMermaidTraps('IUSE["iOS: t(\\"x\\")"]')).toHaveLength(1);
+    expect(findMermaidTraps('IUSE["iOS: t(\\"x\\")"]')[0]).toContain('#quot;');
+    expect(findMermaidTraps('IUSE["iOS: t(#quot;x#quot;)"]')).toHaveLength(0); // the FIX, not a trap
+    // a "." inside a -. dotted .-> edge label breaks the lexer:
+    expect(findMermaidTraps('flowchart TB\n  FS -. chore.conflict set .-> CONF')).toHaveLength(1);
+    // periods in pipe / node labels and period-free dotted labels are fine:
+    expect(findMermaidTraps('flowchart TB\n  A -->|chore.conflict set| B')).toHaveLength(0);
+    expect(findMermaidTraps('flowchart TB\n  A["chore.conflict set"] --> B')).toHaveLength(0);
+    expect(findMermaidTraps('flowchart TB\n  RATCHET -.locks consumers.-> WUSE')).toHaveLength(0);
+    // ";" in sequenceDiagram message / note text is a statement separator:
+    expect(findMermaidTraps('sequenceDiagram\n  Note over X: claims live; route guards pass')).toHaveLength(1);
+    expect(findMermaidTraps('sequenceDiagram\n  X->>Y: success; onSnapshot fires')).toHaveLength(1);
+    // the same ";" in a FLOWCHART label is harmless (sequence-only trap):
+    expect(findMermaidTraps('flowchart TB\n  A["foo; bar"] --> B')).toHaveLength(0);
+    expect(findMermaidTraps('sequenceDiagram\n  participant FBAuth as Firebase Auth')).toHaveLength(0);
+  });
 });
 
 describe('arch-doc-integrity: parseDoc + collectHeadingSlugs', () => {

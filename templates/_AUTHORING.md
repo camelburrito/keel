@@ -60,10 +60,14 @@ is strict-zero: zero violations, always.
   Base-relative shorthand (`audit/writeWithAudit.ts` after you've said "under
   `the/feature/dir/`") is allowed and not checked, as are generated/ephemeral
   build outputs.
-- **Mermaid renders on GitHub.** Node labels and pipe-delimited edge labels may
-  not contain the GitHub-renderer traps: a literal `\n` (use `<br/>`), `&&`
-  (renders as an HTML entity), or a raw `<tag>` other than `<br/>` (GitHub
-  silently drops it — this is how `<placeholder>` text vanishes).
+- **Mermaid renders on GitHub.** The ratchet flags the GitHub-renderer traps it
+  has seen break a real diagram: in a node or pipe-delimited edge label, a
+  literal `\n` (use `<br/>`), `&&` (renders as an HTML entity), a raw `<tag>`
+  other than `<br/>` (GitHub silently drops it — this is how `<placeholder>`
+  text vanishes), or a backslash-escaped quote `\"` (mermaid has no `\"` escape —
+  use the `#quot;` entity); plus a `.` inside a `-. dotted .->` edge label (the
+  `.->` close token is lexed on the first `.`, aborting the parse) and a `;` in
+  sequenceDiagram message/note text (a statement separator — use `,` or `—`).
 - **Footer present.** Every doc except `README.md` ends with a
   `**Last updated:** YYYY-MM-DD` line. Re-anchor it when you ship a change.
 

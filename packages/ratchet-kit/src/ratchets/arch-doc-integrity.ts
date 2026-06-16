@@ -137,18 +137,36 @@ export function citedRepoPath(
 }
 
 /**
- * GitHub-renderer traps inside mermaid node labels AND pipe-delimited edge
- * labels: literal `\n`, `&&`, and a raw `<tag>` other than `<br/>`.
+ * GitHub-renderer traps inside mermaid. Two are inside node labels AND
+ * pipe-delimited edge labels: literal `\n`, `&&`, a raw `<tag>` other than
+ * `<br/>`, and a backslash-escaped quote `\"` (mermaid has no C-style escape —
+ * use the `#quot;` entity). Two more live OUTSIDE bracket labels and are scanned
+ * per-line (all four verified against the real mermaid parser):
+ *   - a `.` inside a `-. text .->` DOTTED-edge label — the `.->` close token is
+ *     lexed on the first `.`-then-dash, so a period in the label aborts the
+ *     parse. (Periods in pipe/node labels are fine — dotted-only.)
+ *   - a `;` in sequenceDiagram message / note text — `;` is a statement
+ *     separator, so the parser hits a newline where it expects an arrow.
+ *     (Harmless in flowchart labels — sequence-only.)
  */
 export function findMermaidTraps(body: string): string[] {
   const traps: string[] = [];
   const lines = body.split('\n');
+  const firstMeaningful = lines.find((l) => l.trim().length > 0) ?? '';
+  const isSequence = /^\s*sequenceDiagram\b/.test(firstMeaningful);
   // Compound shapes first so a circle `((x))` captures `x` (not `(x`).
   const labelRe =
     /\(\(([^)]*)\)\)|\[\[([^\]]*)\]\]|\{\{([^}]*)\}\}|\[\(([^)]*)\)\]|\(\[([^\]]*)\]\)|\[([^\]]*)\]|\(([^)]*)\)|\{([^}]*)\}|\|([^|]+)\|/g;
+  // Dotted-edge label text between `-.` and the closing `.-` (covers `.->`,
+  // `.-`, reverse `<-. .-`). A bracket label containing both `-.` and `.-` is a
+  // theoretical false-positive but does not occur in practice.
+  const dottedEdgeRe = /-\.\s*([^\n]*?)\s*\.-/g;
   const check = (label: string, i: number) => {
     if (label.includes('\\n')) traps.push(`line +${i}: label "${label}" contains literal \\n (use <br/>)`);
     if (label.includes('&&')) traps.push(`line +${i}: label "${label}" contains && (renders as entity)`);
+    if (/\\["']/.test(label)) {
+      traps.push(`line +${i}: label "${label}" has a backslash-escaped quote (mermaid has no \\" escape — use #quot;)`);
+    }
     const withoutBr = label.replace(/<br\s*\/?>/gi, '');
     if (/<[a-zA-Z/]/.test(withoutBr)) {
       traps.push(`line +${i}: label "${label}" contains an HTML-like <tag> (GitHub drops it — escape it or reword)`);
@@ -160,6 +178,19 @@ export function findMermaidTraps(body: string): string[] {
     labelRe.lastIndex = 0;
     while ((m = labelRe.exec(line)) !== null) {
       check(m.slice(1).find((g) => g !== undefined) ?? '', i);
+    }
+    dottedEdgeRe.lastIndex = 0;
+    while ((m = dottedEdgeRe.exec(line)) !== null) {
+      const edgeLabel = m[1] ?? '';
+      if (edgeLabel.includes('.')) {
+        traps.push(`line +${i}: dotted-edge label "${edgeLabel}" contains a "." (breaks the .-> lexer — reword without a period)`);
+      }
+    }
+    if (isSequence) {
+      const colon = line.indexOf(':');
+      if (colon !== -1 && line.slice(colon + 1).includes(';')) {
+        traps.push(`line +${i}: sequence text "${line.trim()}" contains ";" (statement separator — use "," or "—")`);
+      }
     }
   }
   return traps;
