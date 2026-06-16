@@ -1311,6 +1311,12 @@ describe('arch-doc-integrity: findMermaidTraps', () => {
     // the same ";" in a FLOWCHART label is harmless (sequence-only trap):
     expect(findMermaidTraps('flowchart TB\n  A["foo; bar"] --> B')).toHaveLength(0);
     expect(findMermaidTraps('sequenceDiagram\n  participant FBAuth as Firebase Auth')).toHaveLength(0);
+    // colon-less guard + themed (directive/frontmatter) sequences keep protection:
+    expect(findMermaidTraps('sequenceDiagram\n  loop every 5s; forever\n  end')).toHaveLength(1);
+    expect(findMermaidTraps('%%{init: {"theme":"neutral"}}%%\nsequenceDiagram\n  Note over X: a; b')).toHaveLength(1);
+    expect(findMermaidTraps('---\ntitle: Flow\n---\nsequenceDiagram\n  Note over X: a; b')).toHaveLength(1);
+    // ";" inside a %% comment is ignored (mermaid drops comments):
+    expect(findMermaidTraps('sequenceDiagram\n  %% note: a; b\n  X->>Y: ping')).toHaveLength(0);
   });
 });
 

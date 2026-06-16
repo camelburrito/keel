@@ -152,8 +152,10 @@ export function citedRepoPath(
 export function findMermaidTraps(body: string): string[] {
   const traps: string[] = [];
   const lines = body.split('\n');
-  const firstMeaningful = lines.find((l) => l.trim().length > 0) ?? '';
-  const isSequence = /^\s*sequenceDiagram\b/.test(firstMeaningful);
+  // Diagram type, skipping a leading `%%`-comment / `%%{init}%%` directive and a
+  // `---\n…\n---` frontmatter block — a themed sequence diagram opens with those
+  // and would otherwise lose `;`-trap protection. The `;` trap is sequence-only.
+  const isSequence = /^sequenceDiagram\b/.test(mermaidDiagramType(lines));
   // Compound shapes first so a circle `((x))` captures `x` (not `(x`).
   const labelRe =
     /\(\(([^)]*)\)\)|\[\[([^\]]*)\]\]|\{\{([^}]*)\}\}|\[\(([^)]*)\)\]|\(\[([^\]]*)\]\)|\[([^\]]*)\]|\(([^)]*)\)|\{([^}]*)\}|\|([^|]+)\|/g;
@@ -186,14 +188,39 @@ export function findMermaidTraps(body: string): string[] {
         traps.push(`line +${i}: dotted-edge label "${edgeLabel}" contains a "." (breaks the .-> lexer — reword without a period)`);
       }
     }
-    if (isSequence) {
-      const colon = line.indexOf(':');
-      if (colon !== -1 && line.slice(colon + 1).includes(';')) {
-        traps.push(`line +${i}: sequence text "${line.trim()}" contains ";" (statement separator — use "," or "—")`);
-      }
+    // `;` is a statement separator in sequenceDiagram — breaks message/note text
+    // AND colon-less guard lines (`loop a; b`). Whole-line scan; skip `%%`
+    // comments (mermaid ignores them). No legit sequence statement uses `;`.
+    if (isSequence && !line.trim().startsWith('%%') && line.includes(';')) {
+      traps.push(`line +${i}: sequence line "${line.trim()}" contains ";" (statement separator — use "," or "—")`);
     }
   }
   return traps;
+}
+
+// First meaningful diagram-type line, skipping a leading `%%`-comment /
+// `%%{init}%%` directive and a `---\n…\n---` frontmatter block.
+function mermaidDiagramType(lines: string[]): string {
+  let i = 0;
+  while (i < lines.length) {
+    const t = (lines[i] ?? '').trim();
+    if (t === '') {
+      i++;
+      continue;
+    }
+    if (t.startsWith('%%')) {
+      i++;
+      continue;
+    }
+    if (t === '---') {
+      i++; // open frontmatter
+      while (i < lines.length && (lines[i] ?? '').trim() !== '---') i++;
+      i++; // close frontmatter
+      continue;
+    }
+    break;
+  }
+  return (lines[i] ?? '').trim();
 }
 
 /**
