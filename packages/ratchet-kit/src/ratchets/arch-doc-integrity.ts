@@ -160,9 +160,11 @@ export function findMermaidTraps(body: string): string[] {
   const labelRe =
     /\(\(([^)]*)\)\)|\[\[([^\]]*)\]\]|\{\{([^}]*)\}\}|\[\(([^)]*)\)\]|\(\[([^\]]*)\]\)|\[([^\]]*)\]|\(([^)]*)\)|\{([^}]*)\}|\|([^|]+)\|/g;
   // Dotted-edge label text between `-.` and the closing `.-` (covers `.->`,
-  // `.-`, reverse `<-. .-`). A bracket label containing both `-.` and `.-` is a
-  // theoretical false-positive but does not occur in practice.
-  const dottedEdgeRe = /-\.\s*([^\n]*?)\s*\.-/g;
+  // `.-`, reverse `<-. .-`). `>` is excluded so a CHAIN of unlabeled dotted
+  // arrows (`A -.->|p| B -.->|p| C`) can't span across the arrowheads into a
+  // spurious capture. A bracket label containing both `-.` and `.-` (no `>`
+  // between) remains a theoretical false-positive but does not occur in practice.
+  const dottedEdgeRe = /-\.\s*([^\n>]*?)\s*\.-/g;
   const check = (label: string, i: number) => {
     if (label.includes('\\n')) traps.push(`line +${i}: label "${label}" contains literal \\n (use <br/>)`);
     if (label.includes('&&')) traps.push(`line +${i}: label "${label}" contains && (renders as entity)`);
