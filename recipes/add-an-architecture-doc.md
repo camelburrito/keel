@@ -50,7 +50,7 @@ The mechanical half of that contract is enforced by `archDocIntegrity` from `@ca
 ## Wire it into the drift defenses
 
 1. **Citation hook** — list every file path your doc cites in `.claude/hooks/architecture-doc-drift.sh` (the script greps doc bodies for citations). When someone edits a cited file, the hook prompts them to re-anchor the doc.
-2. **Value parsers** — for claims that are counts or version numbers, write a parser-test that reads source ground truth and asserts the doc's claim matches. See `chorz/src/__tests__/arch-doc-cf-claims.test.ts` for the canonical example.
+2. **Value parsers** — for claims that are counts or version numbers, write a parser-test that reads source ground truth and asserts the doc's claim matches (e.g., a "N callable functions" claim checked against the actual handler exports, so the doc can't silently drift from the code).
 3. **Integrity ratchet** — `archDocIntegrity` from `@camelburrito/ratchet-kit` validates that every citation RESOLVES (links, anchors, cited paths), mermaid renders, and the footer is present. No per-doc wiring needed — it scans the whole `docs/architecture/` directory once it's in the suite.
 4. **Last-updated footer** — re-anchor it whenever you ship a change that affects this system.
 5. **Same-PR rule** — when a code change affects a documented system, update the doc in the SAME PR. Don't defer.

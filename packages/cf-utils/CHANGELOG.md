@@ -5,12 +5,12 @@ All notable changes to `@camelburrito/cf-utils` are documented here. Format foll
 ## [Unreleased]
 
 ### Added
-- Scaffold only. Implementation pending extraction from `chorz/shared-cf-utils/`.
+- Scaffold only. Implementation pending.
 
 ## [0.1.0] - TBD
 
 Initial extraction. Targets:
-- `logger` with 7-layer redact pipeline (extracted from `chorz/shared-cf-utils/src/utils/logger.ts`)
+- `logger` with 7-layer redact pipeline
 - `instrument.wrapHandler` + `OAUTH_SECRET_FIELDS` + `scrubGaxiosError`
 - `writeWithAudit` / `writeWithAuditBatch`
 - `checkRateLimit`

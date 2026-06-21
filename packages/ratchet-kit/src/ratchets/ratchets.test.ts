@@ -936,7 +936,7 @@ describe('extractDefinedTokens', () => {
     const css = `.x { color: red; font-size: 14px; --my-token: 1px; }`;
     // The non-CP declarations land off-line-start so the gm regex skips them,
     // but the --my-token IS at line start (after the open-brace it isn't, but
-    // the chorz precedent uses gm anchoring — verify expected shape).
+    // the gm anchoring convention — verify expected shape).
     const defined = extractDefinedTokens(css);
     expect(defined.has('--my-token')).toBe(false); // not at line start
     expect(defined).not.toContain('color');

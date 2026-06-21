@@ -3,7 +3,6 @@
 #
 # Skeleton. Adapt PRIMARY_SCHEMES + MIN values for your project's iOS targets.
 # See keel playbook 06-testing-cadence.md § "Sub-pattern: per-target iOS coverage floors".
-# Reference impl: chorz/apple/scripts/check-coverage-floors.sh.
 #
 # Usage:
 #   bash apple/scripts/check-coverage-floors.sh <merged-coverage-report.json>

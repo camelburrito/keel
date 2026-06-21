@@ -2,7 +2,7 @@
 
 Configurable strict-zero ratchet templates for keel-derived projects.
 
-**Status:** stable — 23 ratchets extracted from `chorz/src/__tests__/`. See [keel playbook 07-ratchet-framework.md](../../docs/playbook/07-ratchet-framework.md).
+**Status:** stable — 23 ratchet templates, generalized from production use. See [keel playbook 07-ratchet-framework.md](../../docs/playbook/07-ratchet-framework.md).
 
 ## What this package provides
 
@@ -41,7 +41,7 @@ Configurable strict-zero ratchet templates for keel-derived projects.
 | `archDocIntegrity` | v0.7 | every `docs/architecture/*.md`: links/anchors resolve (GitHub-exact slug), fully-qualified cited paths exist (incl. `file:line`), mermaid has no GitHub-renderer traps (`\n`→`<br/>`, `&&`, raw `<tag>`, `\"`→`#quot;`, a `.` in a `-. dotted .->` edge label, `;` in sequenceDiagram text), every filled mermaid `classDef`/`style` pins a text `color:` (dark-mode legibility), footer present. Config: `{ archDir, repoRoot, topLevelDirs, ephemeralPrefixes? }`. |
 | `noAdaptiveFgOnKeptLightIsland` | v0.7 | dark-mode polarity: fails a CSS rule / SwiftUI modifier-run that paints an adaptive foreground on a kept-light island background. Adaptive set self-derived from `tokens.json` `darkColor`. Config: `{ tokensJsonPath, cssRoot?, swiftRoots? }`. |
 
-**On the roadmap (graduate from chorz as patterns prove portable):**
+**On the roadmap (graduate as patterns prove portable across projects):**
 
 `noBareFirebaseUidInLogger`, `cfUtilsTarballsCommitted`.
 
@@ -75,7 +75,7 @@ noBareHexInTsx({
 
 ## What this package does NOT provide
 
-Project-specific ratchets (e.g., `no-legacy-kid-cta-token` in chorz) — those are not portable. Use `_ratchetHelpers` to author them; see [recipes/add-a-ratchet.md](../../recipes/add-a-ratchet.md).
+Project-specific ratchets (e.g., one locking a renamed design token out of a codebase) — those are not portable. Use the exported helpers to author them; see [recipes/add-a-ratchet.md](../../recipes/add-a-ratchet.md).
 
 ## Versioning
 

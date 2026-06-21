@@ -25,4 +25,4 @@ Total ratchet exports: 5 → 9. Helpers + types unchanged. 33 → 48 test cases.
 ## [0.1.0] — 2026-06-05
 
 ### Added
-- Initial extraction from chorz/src/__tests__. Helpers (`stripTsLineAndBlockComments`, `stripSwiftCommentsAndDebugBlocks`, `stripSwiftPreviewBlocks`, `countMatchesIgnoringBrands`, `checkDeferralCount`, `walkFiles`, `runRatchet`) + 5 most-portable structural ratchet templates: `noInlineStyle`, `noBareHexInTsx`, `noBareHexInCss`, `noBarePxInCss`, `noConsoleInSource`. 33 smoke-test cases.
+- Initial extraction. Helpers (`stripTsLineAndBlockComments`, `stripSwiftCommentsAndDebugBlocks`, `stripSwiftPreviewBlocks`, `countMatchesIgnoringBrands`, `checkDeferralCount`, `walkFiles`, `runRatchet`) + 5 most-portable structural ratchet templates: `noInlineStyle`, `noBareHexInTsx`, `noBareHexInCss`, `noBarePxInCss`, `noConsoleInSource`. 33 smoke-test cases.

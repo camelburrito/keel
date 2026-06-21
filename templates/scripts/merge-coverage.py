@@ -2,8 +2,7 @@
 """
 templates/scripts/merge-coverage.py — merge per-scheme iOS coverage into one report.
 
-Skeleton. Reference impl: chorz/apple/scripts/merge-coverage.py.
-See keel playbook 06-testing-cadence.md § "Sub-pattern: per-target iOS coverage floors".
+Skeleton. See keel playbook 06-testing-cadence.md § "Sub-pattern: per-target iOS coverage floors".
 
 Usage:
     python3 apple/scripts/merge-coverage.py \\
@@ -34,7 +33,6 @@ from collections import defaultdict
 def load_scheme_report(report_path: Path) -> dict:
     """Parse an Xcode xccovreport file via xcrun xccov view --json."""
     # TODO: shell out to `xcrun xccov view --json <report>`
-    # Reference impl: chorz/apple/scripts/merge-coverage.py
     result = subprocess.run(
         ["xcrun", "xccov", "view", "--json", str(report_path)],
         capture_output=True, text=True, check=True,

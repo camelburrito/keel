@@ -82,7 +82,7 @@ Two seed modes coexist:
 - **Real-auth mode** — emulator-auth account, real session cookies, real route guards. Best for primary flows.
 - **Harness mode** — pre-authenticated routes (`/_harness/dashboard?seed=perm-recurring`) bypass auth and inject seed-doc IDs directly into the rendering layer. Best for visual variants where authentication isn't the thing under test.
 
-See `chorz/e2e/phase-1063/` for the canonical harness-mode + real-auth split.
+Keep both modes for the same flow where it matters: real-auth proves the guard, harness mode gives fast deterministic coverage of the rendering variants behind it.
 
 ## data-testid naming convention
 

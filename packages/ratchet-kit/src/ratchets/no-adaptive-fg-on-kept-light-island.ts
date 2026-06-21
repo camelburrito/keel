@@ -97,7 +97,7 @@ export function deriveAdaptiveSwiftTokens(tokensJson: string): Set<string> {
     if (key === '_doc') continue;
     // An absent `platforms` array means "all platforms" (included). A present
     // array that omits "ios" is a web-only dark leaf (excluded — never reaches
-    // Swift codegen). NB: the reference chorz impl required `platforms?.includes`
+    // Swift codegen). NB: a project may special-case `platforms?.includes`
     // (absent → excluded); this generalization is identical on any token set that
     // declares `platforms` on every darkColor leaf, which is the documented convention.
     if (def.platforms && !def.platforms.includes('ios')) continue;

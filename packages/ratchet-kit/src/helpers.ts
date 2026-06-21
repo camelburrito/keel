@@ -1,7 +1,6 @@
 // Shared helpers for the strict-zero-with-carve-outs ratchet pattern.
-// Hoisted from chorz's src/__tests__/_ratchetHelpers.ts. Consumers import these
-// rather than redefining inline so all ratchets stay in sync on the
-// count-tracked deferral semantics.
+// Consumers import these rather than redefining inline so all ratchets stay in
+// sync on the count-tracked deferral semantics.
 
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
