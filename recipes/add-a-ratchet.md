@@ -73,7 +73,7 @@ If you can't drain to zero today, use a deferral baseline:
 const WEB_DEFERRED: Record<string, { count: number; rationale: string }> = {
   'src/legacy/OldComponent.tsx': {
     count: 3,
-    rationale: 'pre-Phase-1078 migration baseline; drain in Phase 1080',
+    rationale: 'legacy migration baseline; drain in a follow-up',
   },
 };
 ```

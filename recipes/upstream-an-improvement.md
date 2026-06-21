@@ -44,7 +44,7 @@ A war-story keeps its teaching value **without** the name attached. "One project
 - [ ] Generalized: ran the agnosticism gate above — every app name, path, and internal reference is gone.
 - [ ] `grep -rin '<your-app-name>' .` over the keel tree returns **zero** hits from your change.
 - [ ] If you touched `packages/`: CHANGELOG updated, semver bumped, tests pass (`npm test` in the package).
-- [ ] If you touched `docs/`: links/anchors resolve and mermaid renders — run the arch-doc integrity ratchet (`@camelburrito/ratchet-kit`'s `archDocIntegrity`) and the real-render check (`node scripts/check-mermaid-render.mjs`).
+- [ ] If you touched `docs/`: links/anchors resolve and mermaid renders — run `node scripts/check-mermaid-render.mjs` (it scans `docs/playbook/` + `docs/architecture/`), and point `@camelburrito/ratchet-kit`'s `archDocIntegrity` at your docs dir (its `archDir` config) if your project has arch docs.
 - [ ] If you added a playbook entry: row added to `docs/playbook/00-index.md` (see [add-a-playbook-entry.md](add-a-playbook-entry.md)).
 - [ ] The change reads as if keel had always had it — not as a port *from* somewhere.
 
@@ -53,6 +53,6 @@ A war-story keeps its teaching value **without** the name attached. "One project
 After the keel PR merges, the originating project (and every other consumer) picks the change up the normal way:
 
 - **Packages** → bump the `@camelburrito/<pkg>` version in the project's `package.json` and `npm install`.
-- **Scripts / templates / playbook** → these are copied at bootstrap; pull updates via the project's `keel-refresh` step (which shows a diff before applying, since a project's own copy is allowed to drift).
+- **Scripts / templates / playbook** → these are copied at bootstrap; pull updates via the project's `keel-refresh.sh` step (which shows a diff before applying, since a project's own copy is allowed to drift).
 
 The loop closes: the project that learned the lesson now consumes the generalized version it contributed.

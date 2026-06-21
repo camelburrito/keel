@@ -23,7 +23,7 @@ const TOAST_REVIEW_HOLD_MS = 6000; // Design-intent constant — explicit user-r
 Or in Swift:
 
 ```swift
-let ctaHeight: CGFloat = 64 // Design-intent constant — kid-finger tap target (see GH #309)
+let ctaHeight: CGFloat = 64 // Design-intent constant — minimum tap target (see GH #309)
 ```
 
 The `// Design-intent constant — <reason> (see GH #<issue>)` comment shape is what the bare-literal ratchets recognize as a legitimate carve-out.

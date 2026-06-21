@@ -248,7 +248,7 @@ describe('countBareSizeInSwift', () => {
   it('honors Design-intent escape on same line', () => {
     expect(
       countBareSizeInSwift(
-        'let ctaHeight: CGFloat = 64 // Design-intent constant — kid-finger tap target (see GH #309)',
+        'let ctaHeight: CGFloat = 64 // Design-intent constant — minimum tap target (see GH #309)',
       ),
     ).toBe(0);
   });
@@ -396,8 +396,8 @@ describe('countBareViewportEmInCss', () => {
 describe('no-stale-e2e-selectors helpers', () => {
   describe('extractTestidLiterals', () => {
     it("extracts getByTestId('foo')", () => {
-      const usages = e2eInternal.extractTestidLiterals(`page.getByTestId('chore-card-body')`);
-      expect(usages).toEqual([{ literal: 'chore-card-body', isPrefixMatch: false }]);
+      const usages = e2eInternal.extractTestidLiterals(`page.getByTestId('item-card-body')`);
+      expect(usages).toEqual([{ literal: 'item-card-body', isPrefixMatch: false }]);
     });
 
     it('extracts data-testid="foo" attribute literal', () => {
@@ -935,8 +935,8 @@ describe('extractDefinedTokens', () => {
   it('ignores non-custom-property declarations', () => {
     const css = `.x { color: red; font-size: 14px; --my-token: 1px; }`;
     // The non-CP declarations land off-line-start so the gm regex skips them,
-    // but the --my-token IS at line start (after the open-brace it isn't, but
-    // the gm anchoring convention — verify expected shape).
+    // but the --my-token IS at line start (after the open-brace it isn't, so
+    // the gm-anchored regex skips it here too — verify expected shape).
     const defined = extractDefinedTokens(css);
     expect(defined.has('--my-token')).toBe(false); // not at line start
     expect(defined).not.toContain('color');
@@ -1301,10 +1301,10 @@ describe('arch-doc-integrity: findMermaidTraps', () => {
     expect(findMermaidTraps('IUSE["iOS: t(\\"x\\")"]')[0]).toContain('#quot;');
     expect(findMermaidTraps('IUSE["iOS: t(#quot;x#quot;)"]')).toHaveLength(0); // the FIX, not a trap
     // a "." inside a -. dotted .-> edge label breaks the lexer:
-    expect(findMermaidTraps('flowchart TB\n  FS -. chore.conflict set .-> CONF')).toHaveLength(1);
+    expect(findMermaidTraps('flowchart TB\n  FS -. record.conflict set .-> CONF')).toHaveLength(1);
     // periods in pipe / node labels and period-free dotted labels are fine:
-    expect(findMermaidTraps('flowchart TB\n  A -->|chore.conflict set| B')).toHaveLength(0);
-    expect(findMermaidTraps('flowchart TB\n  A["chore.conflict set"] --> B')).toHaveLength(0);
+    expect(findMermaidTraps('flowchart TB\n  A -->|record.conflict set| B')).toHaveLength(0);
+    expect(findMermaidTraps('flowchart TB\n  A["record.conflict set"] --> B')).toHaveLength(0);
     expect(findMermaidTraps('flowchart TB\n  RATCHET -.locks consumers.-> WUSE')).toHaveLength(0);
     // chained unlabeled dotted arrows must not span across arrowheads (`>`-exclusion):
     expect(findMermaidTraps('flowchart TB\n  I2 -.->|previous| I1 -.->|previous| ROOT')).toHaveLength(0);

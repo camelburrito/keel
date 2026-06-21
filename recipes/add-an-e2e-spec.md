@@ -80,13 +80,13 @@ E2E specs run against emulators with `seedPermutations.ts` data seeded at startu
 
 Two seed modes coexist:
 - **Real-auth mode** — emulator-auth account, real session cookies, real route guards. Best for primary flows.
-- **Harness mode** — pre-authenticated routes (`/_harness/dashboard?seed=perm-recurring`) bypass auth and inject seed-doc IDs directly into the rendering layer. Best for visual variants where authentication isn't the thing under test.
+- **Harness mode** — pre-authenticated routes (`/_harness/dashboard?seed=basic`) bypass auth and inject seed-doc IDs directly into the rendering layer. Best for visual variants where authentication isn't the thing under test.
 
 Keep both modes for the same flow where it matters: real-auth proves the guard, harness mode gives fast deterministic coverage of the rendering variants behind it.
 
 ## data-testid naming convention
 
-- Stable kebab-case slug — `chore-card-body-<choreId>`, `feature-affordance`, `kebab-menu-trigger`.
+- Stable kebab-case slug — `item-card-body-<itemId>`, `feature-affordance`, `kebab-menu-trigger`.
 - Interpolate IDs in spec selectors via Playwright's `getByTestId(pattern)` only when you control the seeding side too.
 - Never use `*` or `^=` wildcards in spec selectors — they hide drift.
 - Defended by `no-stale-e2e-selectors` — every literal in a spec must exist in `src/`, `apple/`, or `packages/` source.

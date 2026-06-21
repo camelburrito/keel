@@ -6,7 +6,7 @@ Private engineering baseline for production apps under `camelburrito/`.
 
 ## What's here
 
-**`docs/playbook/`** — methodology docs (one per system). These capture the WHY, the structural assertions you must satisfy, and the generic pattern itself. They're self-contained: instructions plus the portable shape, with no app-specific paths.
+**`docs/playbook/`** — methodology docs (one per system). These capture the WHY, the structural assertions you must satisfy, and the generic pattern itself. The framing and index are app-agnostic; app-specific paths are being removed from the body docs per-entry as a follow-up.
 
 **`templates/`** — empty scaffolds that get copied into new projects at bootstrap time. POSIX-bash githooks, deny-all `firestore.rules`, base `tsconfig.json` / `eslint.config.js` / `vitest.config.ts`, parametrized GHA workflows, `.env.{staging,prod}.example` field conventions.
 
@@ -43,4 +43,4 @@ When a consuming project adds a significant new architecture (notifications, And
 
 ## Status
 
-Bootstrapped 2026-06-04. **All 13 playbook entries 🟢 drafted** (01..13). `@camelburrito/ratchet-kit` is published (23 ratchet templates); `@camelburrito/cf-utils` is scaffolded. See [docs/playbook/00-index.md](docs/playbook/00-index.md) for the full table of contents and per-entry status.
+Bootstrapped 2026-06-04. **All 13 playbook entries 🟢 drafted** (01..13). `@camelburrito/ratchet-kit` (23 ratchet templates) and `@camelburrito/cf-utils` (logger, audit, rate-limit, idempotency, validation) are both implemented in `packages/` at v0.3.0. See [docs/playbook/00-index.md](docs/playbook/00-index.md) for the full table of contents and per-entry status.
