@@ -1,33 +1,32 @@
 ---
 target: 4
 branch: chore/genericize-keel-baseline
-iteration: 2
+iteration: 3
 last_run: 2026-06-21
 status: in_progress
 clean_reviews_in_row: 0
 max_iterations: 10
 depth: deep
-last_commit: pending-iter-01
-last_finding_count: 8
-last_finding_fingerprint: iter01-cfutils-status+playbook-entry-reframe+overclaim+domain-slugs
+last_commit: pending-iter-02
+last_finding_count: 5
+last_finding_fingerprint: iter02-readme46-status+version+proddeploy-datecode+ratchethelpers+test-slugs
 stuck_iterations: 0
 last_fixes_applied:
-  - "cf-utils status falsely 'scaffold' (actually impl v0.3.0)"
-  - "index/README overclaim 'app-agnostic, no app paths' false for body docs"
-  - "add-a-playbook-entry.md still 'reference project' + Reference-impl template fields"
-  - "add-a-ratchet.md chorz Phase 1078/1080 numbers"
-  - "upstream recipe archDocIntegrity no-op on docs/playbook"
-  - "domain slugs chore-card-body / chore.conflict / choreId / perm-recurring / kid-finger"
-  - "test comment ungrammatical fragment"
-  - "keel-refresh naming drift"
+  - "README:46 'all 13 drafted' false (13 is outlined) -> 12/13"
+  - "README:46 'both v0.3.0' wrong (ratchet-kit is v0.7.3) -> per-package versions"
+  - "templates/.github/workflows/prod-deploy.yml chorz date-code 260602-fpd"
+  - "README:15 _ratchetHelpers chorz filename + ~22 -> shared helpers + 23"
+  - "ratchets.test.ts useChores/households fixtures -> useItems/tenants"
+  - "predeploy-pack stub: 'Note (when implemented)' clarity"
 ---
 # Ralph state for PR #4 (genericize keel baseline — floor)
 
 ## Iteration log
-- iter-01: 2 parallel independent deep reviewers. 0 BLOCKER, 8 SHOULD-FIX/NIT (reconciled), ALL fixed in-loop. 152 ratchet-kit tests green. Two deeper tranches explicitly surfaced to the user (NOT silently deferred): cf-utils functional domain defaults + i18n Member/Household vocabulary + the 13 playbook body docs (planned PR2+).
+- iter-01: 2 deep reviewers, 8 SHOULD-FIX/NIT, all fixed. 152 tests green.
+- iter-02: 2 independent deep reviewers. 0 BLOCKER; 2 SHOULD-FIX (README:46 status + version misattribution — both reviewers, different angles) + in-scope leak (prod-deploy.yml date-code) + NITs (README:15 _ratchetHelpers/count, test fixtures, stub comment). All fixed in-loop. 152 tests green. Both reviewers independently confirmed the deferral boundary is drawn HONESTLY (cf-utils functional defaults + i18n vocab + 13 body docs).
 
 ## Last review summary
-Core goal met: code + packages + framing + recipes are free of clearly-chorz tokens (verified by grep). Fixed: cf-utils status accuracy, index/README overclaim softened to truthful, add-a-playbook-entry reframed to "consuming project" + dropped Reference-impl template fields, phase numbers / domain slugs / kid-finger genericized, recipe archDocIntegrity + keel-refresh corrected, test comment grammar.
+iter-02 caught two truthfulness bugs introduced by iter-01's count bump (status word + shared-version claim) plus one pre-existing in-scope date-code leak the greps missed. All closed. In-scope sweep for chorz / _ratchetHelpers / date-codes / domain slugs now returns zero. README counts internally consistent (23 templates; 12/13 drafted).
 
 ## Stop conditions
-Active. Will mark complete at clean_reviews_in_row >= 3. Out-of-scope by design (tracked, surfaced to user): cf-utils logger/config domain-label defaults + tests (functional change to a PII lib — own PR); i18n Member→Household vocabulary; 13 playbook body docs (PR2+ depth pass).
+Active. clean_reviews_in_row=0 (iter-02 had findings). Need 3 consecutive clean. Out-of-scope by design (surfaced to user): cf-utils logger/config domain-label defaults + tests; i18n Member→Household vocabulary; 13 playbook body docs (PR2+).

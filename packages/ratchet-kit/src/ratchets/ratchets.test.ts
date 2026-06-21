@@ -1248,7 +1248,7 @@ import {
 describe('arch-doc-integrity: slugify (GitHub heading-slug algorithm)', () => {
   it('lowercases, strips punctuation, hyphenates spaces', () => {
     expect(slugify('3.5 String Catalog')).toBe('35-string-catalog');
-    expect(slugify('`useChores` hook')).toBe('usechores-hook');
+    expect(slugify('`useItems` hook')).toBe('useitems-hook');
     expect(slugify('10. Auto-schedule flow')).toBe('10-auto-schedule-flow');
   });
   it('does NOT collapse whitespace runs ("a + b" → a--b)', () => {
@@ -1276,7 +1276,7 @@ describe('arch-doc-integrity: citedRepoPath', () => {
   it('skips base-relative shorthand, ephemeral, and non-paths (null)', () => {
     expect(citedRepoPath('audit/writeWithAudit.ts', top, eph)).toBeNull();
     expect(citedRepoPath('coverage/lcov.info', top, eph)).toBeNull();
-    expect(citedRepoPath('households/{hh}/x.json', top, eph)).toBeNull();
+    expect(citedRepoPath('tenants/{t}/x.json', top, eph)).toBeNull();
     expect(citedRepoPath('src/**/*.ts', top, eph)).toBeNull();
     expect(citedRepoPath('npm run check', top, eph)).toBeNull();
   });

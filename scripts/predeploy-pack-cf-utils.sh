@@ -23,9 +23,9 @@ FORCE=false
 #      b. Read package-lock.json#packages["<source>/node_modules/@camelburrito/cf-utils"].integrity
 #      c. If FORCE=false AND sha matches lockfile -> fast path (skip)
 #      d. Else: cd packages/cf-utils && npm pack -> copy .tgz to <source>/cf-utils.tgz
-# Note: the fast-path/lockfile-integrity match is what keeps deploy-time tarball
-# bytes deterministic across machines (Ubuntu CI vs. local) — never regenerate
-# unless the committed sha drifts from the lockfile.
+# Note (when implemented): the fast-path/lockfile-integrity match is what keeps
+# deploy-time tarball bytes deterministic across machines (Ubuntu CI vs. local) —
+# never regenerate unless the committed sha drifts from the lockfile.
 
 echo "[predeploy-pack] TODO: implement"
 exit 0

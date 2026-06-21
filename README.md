@@ -12,7 +12,7 @@ Private engineering baseline for production apps under `camelburrito/`.
 
 **`packages/`** — truly agnostic code, published to GitHub Packages as `@camelburrito/<pkg>`:
 - `cf-utils` — logger with 7-layer PII redact pipeline, `writeWithAudit`, `idempotency`, `rateLimit`, `validation`, `wrapHandler` + `OAUTH_SECRET_FIELDS`
-- `ratchet-kit` — `_ratchetHelpers` + ~22 structural ratchet templates as configurable functions
+- `ratchet-kit` — shared ratchet helpers + 23 structural ratchet templates as configurable functions
 
 **`scripts/`** — agnostic build/CI/audit scripts (parametrized): `ci-local.sh` skeleton, `gen-strings.mjs`, `gen-tokens.mjs`, `audit-cloud-logging-pii.mjs`, `predeploy-pack-cf-utils.sh`.
 
@@ -43,4 +43,4 @@ When a consuming project adds a significant new architecture (notifications, And
 
 ## Status
 
-Bootstrapped 2026-06-04. **All 13 playbook entries 🟢 drafted** (01..13). `@camelburrito/ratchet-kit` (23 ratchet templates) and `@camelburrito/cf-utils` (logger, audit, rate-limit, idempotency, validation) are both implemented in `packages/` at v0.3.0. See [docs/playbook/00-index.md](docs/playbook/00-index.md) for the full table of contents and per-entry status.
+Bootstrapped 2026-06-04. **12 of 13 playbook entries 🟢 drafted** (01..12; 13 🟡 outlined). `@camelburrito/ratchet-kit` (v0.7.3 — 23 ratchet templates) and `@camelburrito/cf-utils` (v0.3.0 — logger, audit, rate-limit, idempotency, validation) are both implemented in `packages/`. See [docs/playbook/00-index.md](docs/playbook/00-index.md) for the full table of contents and per-entry status.
