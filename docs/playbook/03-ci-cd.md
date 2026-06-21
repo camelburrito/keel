@@ -125,7 +125,7 @@ A failing test means fix the test before deploying. Mandate 3 of the testing-cad
 
 ## 9. Adopting this playbook
 
-- [ ] `scripts/ci-local.sh` skeleton in place (template at `templates/scripts/ci-local.sh`).
+- [ ] `scripts/ci-local.sh` skeleton in place (mirrors every CI step locally).
 - [ ] `.githooks/pre-commit` + `pre-push` from templates; `postinstall` script wires `core.hooksPath`.
 - [ ] `ci-local-mirrors-workflow.test.ts` ratchet wired in pre-commit list.
 - [ ] `npm run check:coverage` defined in `package.json` with direct-binary-path invocation.

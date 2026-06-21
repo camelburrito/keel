@@ -203,6 +203,19 @@ describe('redact — labeled-ID coverage across documented labels', () => {
     expect(result).toContain('[REDACTED_ID]');
   });
 
+  it('redacts fixed token labels case-insensitively (UID / WatchToken / FCMToken)', () => {
+    expect(redact('UID: "abc12345defXYZ_lng"') as string).toContain('[REDACTED_ID]');
+    expect(redact('WatchToken="abc12345defXYZ_lng"') as string).toContain('[REDACTED_ID]');
+    expect(redact('FCMToken: "abc12345defXYZ_lng"') as string).toContain('[REDACTED_ID]');
+  });
+
+  it('does NOT redact English words ending in lowercase "id" (camelCase Id clause is case-sensitive)', () => {
+    // 'android'/'valid' must pass through — the <word>Id clause requires a literal
+    // capital I, so these are not mistaken for ID labels.
+    expect(redact('android: 12345678ab') as string).toContain('12345678ab');
+    expect(redact('valid=98765432cd') as string).toContain('98765432cd');
+  });
+
   it('redacts pure-letter values are NOT touched (requires digit/_/-)', () => {
     // 'AbcDefGhIjKlMnOpQrStUvWx' is 24-char pure letters — no digit/_/-, so
     // LABELED_ID_RE's guard skips it. Verifies the guard is wired.

@@ -6,7 +6,7 @@ Private engineering baseline for production apps under `camelburrito/`.
 
 ## What's here
 
-**`docs/playbook/`** — methodology docs (one per system). These capture the WHY, the structural assertions you must satisfy, and the generic pattern itself. The framing and index are app-agnostic; app-specific paths are being removed from the body docs per-entry as a follow-up.
+**`docs/playbook/`** — methodology docs (one per system). These capture the WHY, the structural assertions you must satisfy, and the generic pattern itself. They are self-contained and app-agnostic — the only paths they contain are generic conventions (e.g. `functions/src/`).
 
 **`templates/`** — empty scaffolds that get copied into new projects at bootstrap time. POSIX-bash githooks, deny-all `firestore.rules`, base `tsconfig.json` / `eslint.config.js` / `vitest.config.ts`, parametrized GHA workflows, `.env.{staging,prod}.example` field conventions.
 

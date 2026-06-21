@@ -190,4 +190,4 @@ The pre-merge UI checklist asks: "Visual proof — does the PR include real-app 
 
 ---
 
-**Last updated:** 2026-06
+**Last updated:** 2026-06-21

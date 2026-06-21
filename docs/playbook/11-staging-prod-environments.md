@@ -234,4 +234,4 @@ Use [checklists/pre-deploy-checklist.md](../../checklists/pre-deploy-checklist.m
 
 ---
 
-**Last updated:** 2026-06
+**Last updated:** 2026-06-21

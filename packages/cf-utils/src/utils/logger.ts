@@ -9,16 +9,21 @@ const piiRedactor = new SyncRedactor();
 //   1. camelCase `<word>Id` label: `userId: "abc123"`, `recordId=abc123def`
 //   2. JSON-stringified: `"userId":"abc123def"`
 //   3. bare 28-char Firebase Auth UIDs (caught by BARE_FIREBASE_UID_RE below)
-// Matches any `<word>Id` label (capital `I`, so words like "android"/"valid"
-// don't false-match), plus `uid` and the `watchToken`/`fcmToken` Firebase /
-// Google-API token labels. Projects with bare-entity-name logging (e.g.
-// `Tenant abc123`) extend coverage via a custom firestoreCollectionNames entry
-// or a domainScrubber — the framework default stays domain-neutral.
+// Matches any camelCase `<word>Id` label MATCHED CASE-SENSITIVELY (literal
+// capital `I`, so English words ending in lowercase "id" — "android"/"valid"/
+// "grid" — don't false-match), plus the fixed token labels `uid`/`watchToken`/
+// `fcmToken` matched CASE-INSENSITIVELY (so `UID`, `WatchToken`, `FCMToken` are
+// also caught). The case split is deliberate: the open-ended `<word>Id` clause
+// must stay case-sensitive to avoid the English-word trap, but the three fixed
+// tokens have no such collision so they tolerate any casing. Boundary: all-caps
+// multi-word labels (`USERID`) are NOT matched by default — a project emitting
+// those wires a domainScrubber (bare 28-char UID *values* are still caught by
+// BARE_FIREBASE_UID_RE regardless of label casing).
 // Captures: 1=label, 2=separator-and-opening-quote, 3=id-value, 4=closing-quote.
 // The value is required to contain at least one digit, hyphen, or underscore so
 // pure-letter human strings don't false-positive.
 const LABELED_ID_RE =
-  /\b([A-Za-z]+Id|[Uu]id|watch[Tt]oken|fcm[Tt]oken)([":\s=]+["']?)([A-Za-z0-9_-]{8,128})(["']?)/g;
+  /\b([A-Za-z]+Id|[Uu][Ii][Dd]|[Ww]atch[Tt]oken|[Ff][Cc][Mm][Tt]oken)([":\s=]+["']?)([A-Za-z0-9_-]{8,128})(["']?)/g;
 
 /**
  * Bare Firebase Auth UID. Firebase UIDs (Google/Apple/anonymous/email-password)

@@ -44,7 +44,7 @@ The iOS equivalent: `packages/<CoreUI>/Sources/<CoreUI>/Atoms/` for L3 elements,
 Any value that genuinely cannot be tokenized (e.g., a one-off pixel offset earned by a specific design intent, a viewport-bound transition duration earned by a user-research outcome) MUST be a named TypeScript/CSS/Swift constant with an inline comment of the form:
 
 ```ts
-const TOAST_REVIEW_HOLD_MS = 6000; // Design-intent constant — explicit user-review pause (see GH #309)
+const TOAST_REVIEW_HOLD_MS = 6000; // Design-intent constant — explicit user-review pause (see GH #<issue>)
 ```
 
 ```swift

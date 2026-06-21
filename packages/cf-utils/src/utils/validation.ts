@@ -14,7 +14,7 @@ const DEFAULT_URL_MAX_LEN = 2048;  // V4-signed-URL ceiling
 const DEFAULT_EMAIL_MAX_LEN = 254; // RFC 5321 ceiling
 
 export interface ValidateStringOpts {
-  /** Logical name used in the error code, e.g., 'member/name'. */
+  /** Logical name used in the error code, e.g., 'user/name'. */
   field: string;
   /** Inclusive upper bound on TRIMMED length. */
   maxLen: number;

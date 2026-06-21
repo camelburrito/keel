@@ -5,10 +5,10 @@ All notable changes to `@camelburrito/cf-utils` are documented here. Format foll
 ## [0.3.1]
 
 ### Changed — domain-neutral defaults
-- `LABELED_ID_RE` now matches any camelCase `<word>Id` label (capital `I`, so words like "android"/"valid" don't false-match) plus `uid` and the `watchToken`/`fcmToken` token labels — replacing the previous enumerated app-specific noun list. Projects needing bare-entity-name redaction (`Tenant abc123`) extend via `firestoreCollectionNames` or a `domainScrubber`.
-- `firestoreCollectionNames` default trimmed to the universal `['users', 'audit']` (was an app-specific set). Extend per project via `configureLogger`.
+- `LABELED_ID_RE` now matches any camelCase `<word>Id` label **case-sensitively** (literal capital `I`, so English words ending in lowercase "id" — "android"/"valid"/"grid" — don't false-match), plus the fixed token labels `uid`/`watchToken`/`fcmToken` matched **case-insensitively** (`UID`/`WatchToken`/`FCMToken` are caught) — replacing the previous enumerated app-specific noun list. The previous bare-entity-name form (`Household abc123`) is no longer matched by default; a project that logs that shape recovers it with a `domainScrubber`. All-caps multi-word labels (`USERID`) are likewise not matched by default.
+- `firestoreCollectionNames` default trimmed to the universal `['users', 'audit']` (was an app-specific set). Extend per project via `configureLogger` — this controls the `<collection>/<id>` path layer only.
 
-No public API change; redaction of camelCase `<word>Id` labels and bare 28-char UIDs is unaffected.
+No public API change; redaction of camelCase `<word>Id` labels and bare 28-char UID *values* (via `BARE_FIREBASE_UID_RE`, independent of label casing) is unaffected.
 
 ## [0.3.0]
 

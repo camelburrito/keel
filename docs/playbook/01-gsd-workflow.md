@@ -148,4 +148,4 @@ For quicks: `quick(<YYMMDD>-<slug>): <summary>`. The shape lets `git log --oneli
 
 ---
 
-**Last updated:** 2026-06
+**Last updated:** 2026-06-21

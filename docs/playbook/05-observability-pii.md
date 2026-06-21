@@ -30,7 +30,7 @@ Every product has at least these surfaces. Inventory them in `docs/architecture/
 | **Sentry events (web)** | `src/**` → `Sentry.captureException/Message` → Sentry | `beforeSend` deep-walk + `SyncRedactor` | ESLint `no-console: error` + strict-zero ratchet |
 | **Sentry breadcrumbs** | Auto-captured by Sentry SDK | `beforeSend` walks breadcrumb data too | Same |
 | **Browser DevTools (web `console.*`)** | Direct browser stdout | **None** — bypasses Sentry entirely | ESLint `no-console: error` + strict-zero ratchet; every `console.*` carries `// eslint-disable-next-line no-console -- <rationale>` |
-| **Audit trail (`audit/{auditId}` Firestore)** | `writeWithAudit` writes to Firestore | **Deliberate carve-out** — audit records persist actor/target UIDs by design (D-01) | Not a "log surface" in the observability sense; an operational record |
+| **Audit trail (`audit/{auditId}` Firestore)** | `writeWithAudit` writes to Firestore | **Deliberate carve-out** — audit records persist actor/target UIDs by design | Not a "log surface" in the observability sense; an operational record |
 | **Native crash reporting** (Crashlytics / Sentry mobile) | Native SDK → vendor service | Vendor's PII guarantees + sample sanitization | Document in arch doc § 1; vendor-specific |
 
 ---
@@ -195,7 +195,7 @@ Generic file paths in a keel-derived project for cross-referencing during implem
 - `src/__tests__/no-bare-firebase-uid-in-logger.test.ts` — the bare-UID ratchet
 - `src/__tests__/no-<vendor>-import-in-cf.test.ts` — the CF observability boundary ratchet
 - `docs/runbooks/observability.md` — Tier 1/2/3 triage runbook
-- `functions/src/audit/writeWithAudit.ts` — the audit-trail carve-out (D-01)
+- `functions/src/audit/writeWithAudit.ts` — the audit-trail carve-out
 
 ---
 

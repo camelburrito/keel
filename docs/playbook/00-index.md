@@ -1,6 +1,6 @@
 # Playbook Index
 
-The keel playbook is a set of methodology docs that capture the WHY, the structural assertions a new project must satisfy, and the generic, portable shape of each pattern. This index and the playbook framing are app-agnostic; the per-doc body genericization (stripping app-specific file paths from each entry) is landing per-entry as a follow-up.
+The keel playbook is a set of methodology docs that capture the WHY, the structural assertions a new project must satisfy, and the generic, portable shape of each pattern. This index, the playbook framing, and the per-doc bodies are all app-agnostic and self-contained — no app-specific file paths (only generic conventions like `functions/src/`).
 
 A new entry is added every time a consuming project ships a significant new architecture (notifications, Android, payments, etc.) and generalizes it back here. A consuming project's `playbook-coverage-on-new-architecture` ratchet enforces same-PR coverage on its side — adding `docs/architecture/<new>.md` there without a matching keel playbook entry trips the gate.
 

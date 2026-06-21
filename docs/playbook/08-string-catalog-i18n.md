@@ -78,7 +78,7 @@ shared/strings/catalogs/en-US.json
          ▼          ▼              ▼
     web TS       iOS Swift     server-side TS
 src/lib/strings/  packages/<App>UI/  <server-utils>/src/
-strings.gen.ts    .../LocalizedStrings.  generated/
+strings.generated.ts  .../LocalizedStrings.  generated/
                   generated.swift       strings.generated.ts
 ```
 
@@ -217,4 +217,4 @@ Recipe: [recipes/add-a-locale.md](../../recipes/add-a-locale.md). Key steps:
 
 ---
 
-**Last updated:** 2026-06
+**Last updated:** 2026-06-21
