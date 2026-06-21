@@ -53,8 +53,6 @@ const defaultConfig: LoggerConfig = {
   domainScrubber: (input) => input,
   firestoreCollectionNames: [
     'users',
-    'households',
-    'members',
     'audit',
   ],
   knownIdentifiers: new Set<string>(),

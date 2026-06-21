@@ -5,16 +5,20 @@ import { getLoggerConfig } from '../config';
 
 const piiRedactor = new SyncRedactor();
 
-// 4-form combined regex for labeled internal IDs:
-//   1. lowercase camelCase: `householdId: "abc123"`, `userId=abc123def`
-//   2. capitalized human-readable: `Household abc123def`
-//   3. JSON-stringified: `"householdId":"abc123def"`
-//   4. bare 28-char Firebase Auth UIDs (caught by BARE_FIREBASE_UID_RE below)
+// Combined regex for labeled internal IDs, matched generically (no domain nouns):
+//   1. camelCase `<word>Id` label: `userId: "abc123"`, `recordId=abc123def`
+//   2. JSON-stringified: `"userId":"abc123def"`
+//   3. bare 28-char Firebase Auth UIDs (caught by BARE_FIREBASE_UID_RE below)
+// Matches any `<word>Id` label (capital `I`, so words like "android"/"valid"
+// don't false-match), plus `uid` and the `watchToken`/`fcmToken` Firebase /
+// Google-API token labels. Projects with bare-entity-name logging (e.g.
+// `Tenant abc123`) extend coverage via a custom firestoreCollectionNames entry
+// or a domainScrubber — the framework default stays domain-neutral.
 // Captures: 1=label, 2=separator-and-opening-quote, 3=id-value, 4=closing-quote.
 // The value is required to contain at least one digit, hyphen, or underscore so
 // pure-letter human strings don't false-positive.
 const LABELED_ID_RE =
-  /\b(household(?:Id)?|member(?:Id)?|chore(?:Id)?|user(?:Id)?|uid|invite(?:Id)?|audit(?:Id)?|slot(?:Id)?|watch[Tt]oken|fcm[Tt]oken)([":\s=]+["']?)([A-Za-z0-9_-]{8,128})(["']?)/gi;
+  /\b([A-Za-z]+Id|[Uu]id|watch[Tt]oken|fcm[Tt]oken)([":\s=]+["']?)([A-Za-z0-9_-]{8,128})(["']?)/g;
 
 /**
  * Bare Firebase Auth UID. Firebase UIDs (Google/Apple/anonymous/email-password)

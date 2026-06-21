@@ -1,7 +1,6 @@
 # 01 — GSD Workflow
 
 **Status:** 🟢 drafted
-**Reference impl:** `chorz/.planning/`, `chorz/docs/GSD_PLAN.md`, `chorz/docs/ACTIVE_TASKS.md`, `chorz/docs/CHANGELOG.md`
 
 ---
 
@@ -23,7 +22,7 @@ The discipline has three properties that earn their keep:
 - `docs/GSD_PLAN.md` (primary roadmap) and `docs/ACTIVE_TASKS.md` (current milestone state) at repo root.
 - `docs/CHANGELOG.md` capturing shipped phases with date + summary.
 - Atomic commits per task; commit messages reference the phase + task (e.g., `quick(260603-pii): PII floor lockdown`).
-- Subagents never use `git commit --no-verify`. Locked structurally by user-level memory rule + downstream-project enforcement.
+- Subagents never use `git commit --no-verify`. Locked structurally by a user-level memory rule + project-level enforcement.
 - Phase numbering follows the convention in § 3 — XXXX-slug for primary, XX.Y for inserted-urgent, 999.x for backlog.
 
 ---
@@ -57,7 +56,7 @@ The `phases/<NNNN>-<slug>/` directory is the load-bearing unit. Once a phase is 
 |---------|---------|---------|
 | `XXXX-slug` | Primary phase, sequential | `1078-i18n-ios-drain` |
 | `XX.Y-slug` | Inserted urgent work between existing phases | `72.1-emergency-rule-fix` |
-| `999.x-slug` | Backlog / parking lot (not on active roadmap yet) | `999.5-i18n-ratchet-blind-spot-closure` |
+| `999.x-slug` | Backlog / parking lot (not on active roadmap yet) | `999.5-ratchet-blind-spot-closure` |
 | `quick(<YYMMDD>-<slug>)` | Sub-phase work that doesn't need a full phase dir | `quick(260603-pii)` |
 
 Phase numbers are monotonically increasing within their range. Don't renumber once a phase is shipped — the historical record breaks.
@@ -89,11 +88,11 @@ Each gate produces a versioned artifact:
 
 ## 5. Wave + plan model inside a phase
 
-A phase decomposes into **waves**. Waves are sequential. Within a wave, **plans** can execute in parallel (independent code paths, no shared file edits). A typical chorz phase has 3–5 waves of 1–8 plans each.
+A phase decomposes into **waves**. Waves are sequential. Within a wave, **plans** can execute in parallel (independent code paths, no shared file edits). A typical phase has 3–5 waves of 1–8 plans each.
 
 The wave model lets you batch parallelizable work without losing the dependency invariants. Wave N must complete before Wave N+1 starts; within Wave N, plans run concurrently (often as parallel subagents in `gsd-executor` instances).
 
-Between waves, run `gsd-tools verify key-links` to catch stranded worktree commits or missing artifacts (the user-memory rule `feedback_verify_keylinks_between_waves` — Phase 1056 lesson).
+Between waves, run `gsd-tools verify key-links` to catch stranded worktree commits or missing artifacts. One project learned this the hard way when a parallel wave left commits stranded in a worktree that the final verifier never saw — the inter-wave key-link check now catches that class before it compounds.
 
 ---
 
@@ -128,7 +127,7 @@ phase(<NNNN>-<slug>): <one-line summary>
 
 <body — what changed, why, follow-ups>
 
-Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+Co-Authored-By: <your AI agent attribution line>
 ```
 
 For quicks: `quick(<YYMMDD>-<slug>): <summary>`. The shape lets `git log --oneline` scan the entire phase or quick history at a glance.
@@ -149,11 +148,4 @@ For quicks: `quick(<YYMMDD>-<slug>): <summary>`. The shape lets `git log --oneli
 
 ---
 
-## Reference reading
-
-- `chorz/.planning/` — the live GSD directory for the chorz project
-- `chorz/.planning/phases/1078-i18n-ios-drain/` — recent end-to-end phase example with all artifacts (`PHASE.md`, `RESEARCH.md`, `PLAN.md`, `VERIFICATION.md`)
-- `chorz/docs/GSD_PLAN.md` — primary roadmap shape
-- `chorz/docs/ACTIVE_TASKS.md` — current milestone state
-- `chorz/docs/CHANGELOG.md` — shipped phases ledger
-- `chorz/CLAUDE.md § gsd-rules` — project-level GSD enforcement directives
+**Last updated:** 2026-06

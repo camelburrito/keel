@@ -1,15 +1,15 @@
 ---
 target: 4
 branch: chore/genericize-keel-baseline
-iteration: 6
+iteration: 7
 last_run: 2026-06-21
-status: complete
-clean_reviews_in_row: 3
-max_iterations: 10
+status: in_progress
+clean_reviews_in_row: 0
+max_iterations: 12
 depth: deep
-last_commit: f62e17d
+last_commit: pending-depth-pass
 last_finding_count: 0
-last_finding_fingerprint: iter06-three-independent-clean
+last_finding_fingerprint: depth-pass-reopen
 stuck_iterations: 0
 last_fixes_applied:
   - "NIT: shared-cf-utils chorz dir name -> packages/cf-utils (gen-strings, pre-commit, test-coverage, _deploy templates)"
@@ -32,4 +32,8 @@ last_fixes_applied:
 CONVERGED. After the iter-05 one-line fix, 3 independent parallel deep reviews of the final commit all clean (plus iter-03 clean + iter-04 fully-clean earlier). 9 reviewer passes across 6 iterations. In-scope surface deterministically verified free of clearly-chorz identifiers.
 
 ## Stop conditions
-COMPLETE. 3 independent clean deep reviews on the converged commit. Out-of-scope by design (surfaced to user for a decision): cf-utils logger/config domain-label defaults + tests (functional PII-lib change); i18n Member→Household vocabulary; the 13 playbook body docs (PR2+ depth pass). Out-of-scope by design (surfaced to user): cf-utils logger/config domain-label defaults + tests; i18n Member→Household vocabulary; 13 playbook body docs (PR2+).
+REOPENED for the depth pass (user: "don't defer anything"). PR #4 now does the COMPLETE genericization, not just the floor:
+- Tranche C: all 13 `docs/playbook/01-13-*.md` BODY docs rewritten to self-contained generic via 13 parallel agents (Reference-impl headers + chorz path footers removed; war-stories anonymized; domain examples neutralized). Verified strict-chorz-token sweep = 0 (file-redirect, RTK-proof).
+- Tranche B: cf-utils FUNCTIONAL genericization — `LABELED_ID_RE` now matches generic `<word>Id`/`uid`/token labels (case-sensitive `…Id`, no app nouns); `firestoreCollectionNames` default → `['users','audit']`; test fixtures neutralized (households/chores→tenants/items, CHORE_*→ITEM_*, member/household field names→user/tenant). cf-utils bumped 0.3.0→0.3.1 + CHANGELOG + README/version mentions. cf-utils 132 + ratchet-kit 152 green; cf-utils tsc clean.
+- Tranche A: i18n resolver vocabulary abstracted to tier ROLES (per-user → group/scope → device → fallback) in add-a-locale.md + catalog _comment + playbook 08 — NO entity names (Member/Household/Tenant all gone).
+Remaining chorz/domain hits repo-wide: 1 (the intentional "strip this" example in upstream-an-improvement.md). Mermaid render check on playbook docs: clean. Need 3 consecutive clean deep reviews again on the expanded diff. Out-of-scope by design (surfaced to user): cf-utils logger/config domain-label defaults + tests; i18n Member→Household vocabulary; 13 playbook body docs (PR2+).

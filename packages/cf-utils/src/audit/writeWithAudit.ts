@@ -73,12 +73,12 @@ function redact(
  *
  * @example
  *   await db.runTransaction(async (txn) => {
- *     const before = (await txn.get(choreRef)).data() ?? null;
+ *     const before = (await txn.get(recordRef)).data() ?? null;
  *     writeWithAudit({
- *       txn, docRef: choreRef, op: 'update',
+ *       txn, docRef: recordRef, op: 'update',
  *       payload: { status: 'done', completedAt: FieldValue.serverTimestamp() },
  *       before,
- *       action: AUDIT_ACTIONS.CHORE_MARKED_DONE,
+ *       action: AUDIT_ACTIONS.ITEM_UPDATED,
  *       actor: callerUid,
  *     });
  *   });

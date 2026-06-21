@@ -1,7 +1,6 @@
 # 13 — System architecture & scale
 
 **Status:** 🟡 outlined
-**Reference impl:** `chorz/docs/architecture/system-overview.md`, `chorz/firebase.json`, `chorz/firestore.rules`
 
 ## Why this exists
 
@@ -17,7 +16,7 @@ A whole-system overview doc earns its place only if it does what no subsystem do
 - **A cost model with its assumptions written down.** A reference per-entity daily workload (reads / writes / invocations / compute / storage), the published unit prices with their date and region, the free-tier subtracted once per project, and a cost-by-scale table. The model is explicitly labeled an estimate, not a bill, and names the two or three line items that dominate (so the reader knows which knobs matter).
 - **Grounded in the same source the subsystem docs cite** and consistent with them — the overview links *out* to the deep dives for detail (e.g. the scanner-ceiling math) rather than restating or, worse, contradicting them. It is enforced by the same `archDocIntegrity` ratchet (links resolve, cited paths exist, mermaid renders, footer present) as every other arch doc, and it counts toward `playbook-coverage-on-new-architecture`.
 
-The load-bearing idea: **cost and scale fall out of two architecture choices** — (1) every write funnels through a server-validated callable while reads stream directly from the database, so reads dominate cost and compute is the swing factor; and (2) data is sharded by a natural tenant key (household, org, user), so there is no global hot document and the per-tenant path scales horizontally for free. An overview doc that doesn't trace cost and scale back to those choices is just a re-drawn box diagram.
+The load-bearing idea: **cost and scale fall out of two architecture choices** — (1) every write funnels through a server-validated callable while reads stream directly from the database, so reads dominate cost and compute is the swing factor; and (2) data is sharded by a natural tenant key (account, org, user), so there is no global hot document and the per-tenant path scales horizontally for free. An overview doc that doesn't trace cost and scale back to those choices is just a re-drawn box diagram.
 
 ## Sections (TODO when drafted)
 
@@ -33,16 +32,20 @@ Promote to 🟢 drafted once a second reference project ships a whole-system ove
 - Availability and failure modes
 - Cross-links to every subsystem doc
 
-## Reference reading
+## Where the overview lives and what it leans on
 
-- `chorz/docs/architecture/system-overview.md` — the canonical whole-system doc: tier diagram, read/write sequence diagrams, the three-layer scaling envelope, and the cost-by-scale table with stated assumptions.
-- `chorz/docs/architecture/notifications.md` — the deepest per-subsystem scaling analysis (fleet-wide serial scanners as the binding constraint); the overview links to it rather than restating it.
-- `chorz/docs/architecture/cloud-functions.md` — the compute tier the overview summarizes: two codebases, callable surface, pre-flight pattern.
-- `chorz/docs/architecture/data-model.md` — the household-sharded schema that gives the system its horizontal-scaling property.
-- `chorz/firebase.json` — the deployed shape (regions, codebases, hosting) the overview describes.
+The whole-system overview is itself an architecture doc (`docs/architecture/system-overview.md`) that links *out* to the subsystem deep-dives rather than restating them:
+
+- **The overview doc** — the canonical whole-system reference: tier diagram, read/write sequence diagrams, the three-layer scaling envelope, and the cost-by-scale table with stated assumptions.
+- **The notifications / background-job subsystem doc** — typically the deepest per-subsystem scaling analysis (fleet-wide serial scanners as the binding constraint); the overview links to it rather than restating the math.
+- **The compute-tier doc** — the callable/cloud-function surface the overview summarizes: codebase split, callable inventory, pre-flight pattern.
+- **The data-model doc** — the tenant-sharded schema that gives the system its horizontal-scaling property.
+- **The deploy descriptor** (e.g. `firebase.json`) and **the security rules** (e.g. `firestore.rules`) — the deployed shape (regions, codebases, hosting) and access model the overview describes.
 
 ## Related playbook
 
 - [04-architecture-docs.md](04-architecture-docs.md) — the arch-doc convention this entry's overview doc is a member of.
 - [09-firebase-stack.md](09-firebase-stack.md) — the Firebase tier details (Firestore, Cloud Functions, rules) the overview rolls up.
 - [12-notifications.md](12-notifications.md) — the subsystem whose scaling section the overview's envelope leans on.
+
+**Last updated:** 2026-06-21

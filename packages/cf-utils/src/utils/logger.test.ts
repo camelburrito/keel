@@ -168,9 +168,9 @@ describe('redact — Firestore-path coverage across default collections', () => 
     expect(result).toContain('users/[REDACTED_ID]');
   });
 
-  it('redacts /households/{hh}', () => {
-    const result = redact('/households/h-12345abcDEF') as string;
-    expect(result).toContain('households/[REDACTED_ID]');
+  it('does not redact collections outside the default list', () => {
+    const result = redact('/tenants/t-12345abcDEF') as string;
+    expect(result).toContain('tenants/t-12345abcDEF');
   });
 
   it('redacts /audit/{a}', () => {
@@ -179,22 +179,22 @@ describe('redact — Firestore-path coverage across default collections', () => 
   });
 
   it('honors configureLogger.firestoreCollectionNames extension', () => {
-    configureLogger({ firestoreCollectionNames: ['users', 'households', 'members', 'audit', 'chores'] });
-    const result = redact('/chores/c-12345abcDEF') as string;
-    expect(result).toContain('chores/[REDACTED_ID]');
+    configureLogger({ firestoreCollectionNames: ['users', 'audit', 'items'] });
+    const result = redact('/items/c-12345abcDEF') as string;
+    expect(result).toContain('items/[REDACTED_ID]');
   });
 });
 
 describe('redact — labeled-ID coverage across documented labels', () => {
-  it('redacts memberId', () => {
-    const result = redact('memberId: "abc12345defXYZ_lng"') as string;
-    expect(result).toContain('memberId');
+  it('redacts recordId', () => {
+    const result = redact('recordId: "abc12345defXYZ_lng"') as string;
+    expect(result).toContain('recordId');
     expect(result).toContain('[REDACTED_ID]');
     expect(result).not.toContain('abc12345defXYZ_lng');
   });
 
-  it('redacts inviteId', () => {
-    const result = redact('inviteId="abc12345defXYZ_lng"') as string;
+  it('redacts sessionId', () => {
+    const result = redact('sessionId="abc12345defXYZ_lng"') as string;
     expect(result).toContain('[REDACTED_ID]');
   });
 

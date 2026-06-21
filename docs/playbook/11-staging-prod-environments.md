@@ -1,7 +1,6 @@
 # 11 — Staging & Prod Environments
 
 **Status:** 🟢 drafted
-**Reference impl:** `chorz/.github/workflows/_deploy.yml`, `chorz/.github/workflows/{staging,prod}-deploy.yml`, `chorz/.env.<project>` files, `chorz/scripts/verify-deploy-shape.sh`, `chorz/scripts/post-local-ci-status.cjs`
 
 ---
 
@@ -19,8 +18,8 @@ Multi-environment deploys are where most projects accumulate footguns: env flags
 
 ## What you must satisfy
 
-- Two separate Firebase projects (`<APP>-staging`, `<APP>-prod`). Never share a project between envs.
-- `.env.<APP>-{staging,prod}` files carrying per-env config. Gitignored. Locally configured.
+- Two separate Firebase projects (`<app>-staging`, `<app>-prod`). Never share a project between envs.
+- `.env.<app>-{staging,prod}` files carrying per-env config. Gitignored. Locally configured.
 - GHA workflow shape: `_deploy.yml` (callable template) + `staging-deploy.yml` + `prod-deploy.yml` (wrappers).
 - `prod-deploy.yml` declares `workflow_dispatch:` for manual recovery + `always_deploy: true` for cumulative-state release cuts.
 - All `paths-filter` callers use `actions/checkout@v4` with `fetch-depth: 0`. Defended by `no-paths-filter-without-fetch-depth-zero` ratchet.
@@ -28,7 +27,7 @@ Multi-environment deploys are where most projects accumulate footguns: env flags
 - `npm run deploy:{staging,prod}` chain into `test:pre-release` (Tier 3 wall). Defended by `deploy-scripts-gated-by-pre-release` ratchet.
 - Per-env Gmail-`+tag` alert aliases (`<addr>+<app>-{staging,prod}@gmail.com`).
 - `lockfile-sync-with-package-json` + `cf-utils-tarballs-committed` ratchets defending the deploy-shape invariants pre-commit.
-- User-memory rule `feedback_staging_before_prod` loaded.
+- A standing rule: always deploy to staging before prod.
 
 ---
 
@@ -49,31 +48,29 @@ The pattern (do): two separate Firebase projects. Separate IAM. Separate Firesto
 ## 3. `.env.<project>` field convention
 
 ```
-.env.<APP>-staging.example                # template (committed)
-.env.<APP>-prod.example                   # template (committed)
-.env.<APP>-staging                        # filled, gitignored
-.env.<APP>-prod                           # filled, gitignored
+.env.<app>-staging.example                # template (committed)
+.env.<app>-prod.example                    # template (committed)
+.env.<app>-staging                         # filled, gitignored
+.env.<app>-prod                            # filled, gitignored
 ```
 
 Required fields:
 - `VITE_APP_ENV={staging|prod}` — Sentry env routing.
-- `VITE_FIREBASE_AUTH_DOMAIN=auth.[staging.]<APP>.org` — custom auth subdomain per env.
+- `VITE_FIREBASE_AUTH_DOMAIN=auth.[staging.]<your-domain>` — custom auth subdomain per env.
 - `VITE_FIREBASE_*` — per-project Firebase web SDK config (auto-rotated when you regenerate the web app config in Firebase Console).
 - `VITE_SENTRY_DSN` — per-env Sentry DSN (or one DSN with env tagging via `VITE_APP_ENV`).
 - `VITE_GA_MEASUREMENT_ID` — per-env Google Analytics measurement ID.
 - `SENTRY_DSN` — CF-side observability (consumed by `firebase deploy --only functions`).
-
-The user-memory rules `project_custom_domains`, `project_analytics_gtag`, `project_sentry` codify the chorz choices here.
 
 ---
 
 ## 4. Custom domain split
 
 ```
-<app>.org                                 ← prod web app
-staging.<app>.org                         ← staging web app
-auth.<app>.org                            ← prod Firebase Auth domain
-auth.staging.<app>.org                    ← staging Firebase Auth domain
+<your-domain>                             ← prod web app
+staging.<your-domain>                     ← staging web app
+auth.<your-domain>                        ← prod Firebase Auth domain
+auth.staging.<your-domain>                ← staging Firebase Auth domain
 ```
 
 The auth subdomain split matters for OAuth redirect URIs — each Google OAuth client app has a fixed callback host, and mixing envs across one host complicates the consent screen. Per-env auth subdomain = per-env OAuth client = clean isolation.
@@ -93,7 +90,7 @@ DNS records + Firebase Hosting + Firebase Auth domain settings all need wiring p
 ```
 
 The callable template (`_deploy.yml`) accepts inputs:
-- `project: <APP>-{staging|prod}`
+- `project: <app>-{staging|prod}`
 - `environment: {staging|prod}`
 - `always_deploy: boolean` — skip paths-filter check, deploy unconditionally
 
@@ -117,10 +114,10 @@ git push origin main:release        ← release cut
     │ always_deploy: true ensures full deploy
     │
     ▼
-<APP>-prod gets the cumulative state
+<app>-prod gets the cumulative state
 ```
 
-**Why `always_deploy: true` is load-bearing:** `dorny/paths-filter@v3` diffs `event.before..event.sha` to detect changed files. If the release cut is a 93-commit jump from the previous release, paths-filter's shallow-clone fallback returns "no changes" and silently no-ops. Without `always_deploy: true`, your prod release cut deploys nothing while reporting success. This is the chorz quick 260602-fpd lesson; the fix added the `no-paths-filter-without-fetch-depth-zero` ratchet + `always_deploy: true` on prod.
+**Why `always_deploy: true` is load-bearing:** `dorny/paths-filter@v3` diffs `event.before..event.sha` to detect changed files. If the release cut is a large multi-commit jump from the previous release, paths-filter's shallow-clone fallback returns "no changes" and silently no-ops. Without `always_deploy: true`, your prod release cut deploys nothing while reporting success. This is a real war story: a release cut spanning many weeks of accumulated commits silently shipped nothing. The fix added the `no-paths-filter-without-fetch-depth-zero` ratchet (forcing `fetch-depth: 0` so paths-filter can reach `event.before`) + `always_deploy: true` on prod.
 
 **Manual recovery via `workflow_dispatch:`** — if anything misbehaves, an operator triggers a manual prod deploy from the GHA UI. Belt-and-braces alongside automatic release-cut deploys.
 
@@ -130,7 +127,7 @@ git push origin main:release        ← release cut
 
 **Gmail-`+tag` aliases:** `<addr>+<app>-staging@gmail.com` + `<addr>+<app>-prod@gmail.com`. Gmail treats both as `<addr>@gmail.com` but the `+tag` lets you filter on tag → label → folder. One Gmail account, infinite per-env aliases.
 
-`scripts/setup-cf-alerts.sh --project=<APP>-{staging,prod}` (idempotent gcloud wrapper) creates per-env GCP notification channels with the appropriate `+tag` alias. Run once per env at setup. See [05-observability-pii.md § 7.2](05-observability-pii.md).
+`scripts/setup-cf-alerts.sh --project=<app>-{staging,prod}` (idempotent gcloud wrapper) creates per-env GCP notification channels with the appropriate `+tag` alias. Run once per env at setup. See [05-observability-pii.md § 7.2](05-observability-pii.md).
 
 ---
 
@@ -138,7 +135,7 @@ git push origin main:release        ← release cut
 
 Local CI runs Tier 1/2/3/4 tests against your dev environment. None of that catches deploy-shape drift:
 - Lockfile out-of-sync with `package.json` for a CF codebase (`npm ci` would EUSAGE in Cloud Build).
-- `cf-utils.tgz` regenerated with a new sha512 vs. the lockfile integrity field (chorz quick 260603-cdt).
+- A workspace-package tarball (e.g., `cf-utils.tgz`) regenerated with a new sha512 vs. the lockfile integrity field — a real cross-machine non-determinism war story where the committed bytes' sha became unrecoverable to Cloud Build's `npm ci`.
 - An entry-point file (e.g., `functions/lib/index.js`) failing to resolve a dependency at load time.
 
 `scripts/verify-deploy-shape.sh` simulates the upload-isolated install per codebase:
@@ -149,7 +146,7 @@ Local CI runs Tier 1/2/3/4 tests against your dev environment. None of that catc
 
 Two ratchets defend the inputs:
 - `lockfile-sync-with-package-json` — every CF codebase's `package-lock.json` carries entries for every dep in `package.json`.
-- `cf-utils-tarballs-committed` — every codebase's `cf-utils.tgz` sha512 matches the lockfile integrity field.
+- `cf-utils-tarballs-committed` — every codebase's workspace-package tarball sha512 matches the lockfile integrity field.
 
 The script runs in `ci-local.sh` STEP 3.5 + the GHA workflow. The ratchets catch faster (pre-commit), but the script catches the cases ratchets can't (entry-point resolution at install-time).
 
@@ -162,15 +159,15 @@ The script runs in `ci-local.sh` STEP 3.5 + the GHA workflow. The ratchets catch
 {
   "scripts": {
     "test:pre-release": "npm run check:coverage && npm run test:e2e",
-    "deploy:staging": "npm run test:pre-release && firebase deploy --project <APP>-staging",
-    "deploy:prod": "npm run test:pre-release && firebase deploy --project <APP>-prod"
+    "deploy:staging": "npm run test:pre-release && firebase deploy --project <app>-staging",
+    "deploy:prod": "npm run test:pre-release && firebase deploy --project <app>-prod"
   }
 }
 ```
 
 The `&&` chain is structural — `firebase deploy` only fires if `test:pre-release` exits 0. The `deploy-scripts-gated-by-pre-release` strict-zero ratchet parses `package.json` and asserts every `deploy:*` script begins with `npm run test:pre-release &&`. Silent un-gating fails pre-commit.
 
-**No `--skip-tests` flag.** The chorz Phase 1064 explicit rejection. Any escape valve becomes the new default during incidents. Better to fix the test under pressure.
+**No `--skip-tests` flag.** An explicit rejection: any escape valve becomes the new default during incidents. Better to fix the test under pressure.
 
 ---
 
@@ -180,15 +177,15 @@ Every prod deploy is preceded by a staging deploy + soak window:
 - Trivial changes: 30 min soak.
 - Schema/migration changes: 24h+ soak; manual UAT walkthrough.
 
-Why structural-but-not-automated: the test wall catches behavioral regressions, the verify-deploy-shape catches install-time drift, but **only a staging deploy catches Firestore-index drift** (the emulator silently allows ad-hoc indexes; production fails). Chorz quicks 260518-nsc + 260518-trz both surfaced as 9 `FAILED_PRECONDITION` errors in staging, well before they would have hit prod.
+Why structural-but-not-automated: the test wall catches behavioral regressions, the verify-deploy-shape catches install-time drift, but **only a staging deploy catches Firestore-index drift** (the emulator silently allows ad-hoc indexes; production fails). War story: two separate index-drift bugs both surfaced as `FAILED_PRECONDITION` errors in staging — well before they would have hit prod.
 
-Memory rule `feedback_staging_before_prod` codifies this.
+This is a standing rule worth codifying in team norms: never skip staging.
 
 ---
 
-## 11. GHA-quota-cliff fallback
+## 11. CI-quota-cliff fallback
 
-`scripts/post-local-ci-status.cjs` posts green statuses to the PR via GitHub Status API when GHA is down (free-tier 2000-min cap blown — recurring; `project_gha_disabled` memory). Without this, every PR shows 4 red checks during quota outages even though local CI is green.
+`scripts/post-local-ci-status.cjs` posts green statuses to the PR via GitHub Status API when GHA is down (free-tier monthly-minute cap blown — a recurring failure mode on free CI tiers). Without this, every PR shows red checks during quota outages even though local CI is green.
 
 See [03-ci-cd.md § 5](03-ci-cd.md) for the full pattern.
 
@@ -208,8 +205,8 @@ Use [checklists/pre-deploy-checklist.md](../../checklists/pre-deploy-checklist.m
 
 ## 13. Adopting this playbook
 
-- [ ] Two Firebase projects created (`<APP>-staging`, `<APP>-prod`).
-- [ ] `.env.<APP>-{staging,prod}.example` templates filled in for your project.
+- [ ] Two Firebase projects created (`<app>-staging`, `<app>-prod`).
+- [ ] `.env.<app>-{staging,prod}.example` templates filled in for your project.
 - [ ] Custom domain DNS + Firebase Hosting + Auth domain settings wired per env.
 - [ ] GHA workflows from templates (`_deploy.yml` + `staging-deploy.yml` + `prod-deploy.yml`).
 - [ ] `actions/checkout@v4` with `fetch-depth: 0` on all paths-filter callers; `no-paths-filter-without-fetch-depth-zero` ratchet wired.
@@ -217,20 +214,24 @@ Use [checklists/pre-deploy-checklist.md](../../checklists/pre-deploy-checklist.m
 - [ ] `npm run deploy:{staging,prod}` scripts chained through `test:pre-release`; `deploy-scripts-gated-by-pre-release` ratchet wired.
 - [ ] Per-env Gmail `+tag` aliases created; `scripts/setup-cf-alerts.sh` run for both envs.
 - [ ] `scripts/post-local-ci-status.cjs` wired into pre-push for quota-cliff days.
-- [ ] User-memory rules: `feedback_staging_before_prod`, `project_gha_disabled` (when it inevitably fires), `feedback_no_verify_during_gha_outage`, `project_custom_domains` (if you adopt them).
+- [ ] Team norms: always deploy to staging before prod; avoid bypassing CI gates during outages.
 
 ---
 
 ## Reference reading
 
-- `chorz/.github/workflows/_deploy.yml` — callable template
-- `chorz/.github/workflows/staging-deploy.yml` + `chorz/.github/workflows/prod-deploy.yml` — env wrappers
-- `chorz/scripts/verify-deploy-shape.sh` — upload-isolated simulation
-- `chorz/scripts/post-local-ci-status.cjs` — quota-cliff fallback
-- `chorz/scripts/setup-cf-alerts.sh` — per-env alert wiring
-- `chorz/src/__tests__/deploy-scripts-gated-by-pre-release.test.ts` — pre-release-gate defender
-- `chorz/src/__tests__/no-paths-filter-without-fetch-depth-zero.test.ts` — shallow-clone trap defender
-- `chorz/src/__tests__/lockfile-sync-with-package-json.test.ts` — lockfile drift defender
-- `chorz/src/__tests__/cf-utils-tarballs-committed.test.ts` — tarball integrity defender
-- `chorz/docs/runbooks/observability.md` — per-env Tier 1/2/3 triage flow
+- `.github/workflows/_deploy.yml` — callable template
+- `.github/workflows/staging-deploy.yml` + `.github/workflows/prod-deploy.yml` — env wrappers
+- `scripts/verify-deploy-shape.sh` — upload-isolated simulation
+- `scripts/post-local-ci-status.cjs` — quota-cliff fallback
+- `scripts/setup-cf-alerts.sh` — per-env alert wiring
+- `src/__tests__/deploy-scripts-gated-by-pre-release.test.ts` — pre-release-gate defender
+- `src/__tests__/no-paths-filter-without-fetch-depth-zero.test.ts` — shallow-clone trap defender
+- `src/__tests__/lockfile-sync-with-package-json.test.ts` — lockfile drift defender
+- `src/__tests__/cf-utils-tarballs-committed.test.ts` — tarball integrity defender
+- `docs/runbooks/observability.md` — per-env Tier 1/2/3 triage flow
 - Recipe: [recipes/add-a-new-environment.md](../../recipes/add-a-new-environment.md)
+
+---
+
+**Last updated:** 2026-06
