@@ -45,6 +45,10 @@ echo "==> STEP 1: Design System Ratchets"
 npm run tokens:check
 npm run strings:check
 npx tsc --noEmit
+# Authoritative mermaid render check (complements the archDocIntegrity heuristic).
+# Uncomment once you've wired it: `npm i -D mermaid jsdom` + a `check:mermaid`
+# script (see playbook 04-architecture-docs.md § Tier 3 + scripts/check-mermaid-render.mjs).
+# npm run check:mermaid
 
 # STEP 2
 echo "==> STEP 2: Frontend Coverage"
