@@ -215,6 +215,8 @@ This is not a new mandate — it's the move that takes the **Hierarchy Mandate**
 
 Mirror the same move on iOS: migrate the last bare `TextField` / `Toggle` / `Picker` sites onto the native-shell-wrapping atoms (`Input` / `Toggle` / `Dropdown`) so the Swift primitive-hierarchy ratchet also reaches strict-zero. Both platforms strict-zero is the goal — at that point the hierarchy is structurally complete and no feature can reintroduce a raw primitive.
 
+---
+
 ## Reference reading
 
 The structural artifacts this doc describes, as they appear in a consuming project:

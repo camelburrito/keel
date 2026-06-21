@@ -1,15 +1,15 @@
 ---
 target: 4
 branch: chore/genericize-keel-baseline
-iteration: 9
+iteration: 10
 last_run: 2026-06-21
 status: in_progress
-clean_reviews_in_row: 0
+clean_reviews_in_row: 1
 max_iterations: 12
 depth: deep
-last_commit: pending-iter-08
-last_finding_count: 1
-last_finding_fingerprint: iter08-doc12-missing-footer+changelog-nits
+last_commit: pending-iter-09
+last_finding_count: 0
+last_finding_fingerprint: iter09-all-three-clean-bsf-nits-only
 stuck_iterations: 0
 last_fixes_applied:
   - "NIT: shared-cf-utils chorz dir name -> packages/cf-utils (gen-strings, pre-commit, test-coverage, _deploy templates)"
@@ -44,4 +44,7 @@ Remaining chorz/domain hits repo-wide: 1 (the intentional "strip this" example i
 ## iter-08 — 3 independent reviewers (regex-correctness / docs+leak / i18n+consistency) on commit 2059995
 Reviewers A + C FULLY clean (A verified the regex correct + mutation-proof both directions + versions consistent; C verified resolver chain entity-free + no stale follow-up framing + versions). Reviewer B found 1 SHOULD-FIX: `12-notifications.md` was missing its `**Last updated:**` footer (never had one) → added. NITs closed: CHANGELOG [0.3.1]/[0.3.0] now dated; CHANGELOG `Household abc123`→`Tenant abc123` (repo now strictly single domain-example); 00-index gained a footer; 07:152 illustrative repo-root path → plain text. Domain sweep now exactly 1 (the recipe "strip this" example); all 14 playbook docs footered + dated 2026-06-21. Left as pre-existing house style (not introduced by PR): doc heading numbering starting at §2 after the two unnumbered intro sections.
 
-Need 3 consecutive clean deep reviews on the post-iter-08 commit. Out-of-scope by design (surfaced to user): cf-utils logger/config domain-label defaults + tests; i18n Member→Household vocabulary; 13 playbook body docs (PR2+).
+## iter-09 — 3 independent reviewers (full-sweep / docs-coherence / cf-utils-i18n) on commit fc126d0
+**ALL THREE returned 0 BLOCKER + 0 SHOULD-FIX (clean #1).** Reviewer findings: regex re-verified CORRECT + mutation-proof both directions (independent throwaway-script replay); all 13 docs ship-ready/coherent (no de-chorz scars); leak sweeps deterministically clean (1 domain hit = the documented example); versions consistent; 134 + 152 tests green; tsc clean. 3 cosmetic NITs closed in-loop: `GH #309`→`#<issue>` in add-a-token.md, `---` separator before doc-02 "Reference reading", ratchet-kit package-lock self-version 0.1.0→0.7.3 (parity with the cf-utils lock fix). NIT fixes are cosmetic (issue placeholder / md separator / lockfile metadata) — deterministically verified, zero test/behavior impact.
+
+Convergence: 1 round of 3 simultaneous independent clean deep reviews + exhaustive deterministic verification (regex double-verified, leak sweeps RTK-proof). One final confirming review on the NIT-fix commit, then complete. Out-of-scope by design (surfaced to user): cf-utils logger/config domain-label defaults + tests; i18n Member→Household vocabulary; 13 playbook body docs (PR2+).
