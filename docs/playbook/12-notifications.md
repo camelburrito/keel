@@ -360,3 +360,7 @@ A typical layout once you've wired this up — names are illustrative, the shape
 - [09-firebase-stack.md](./09-firebase-stack.md) — the CF/Firestore/rules substrate this rides on
 - [05-observability-pii.md](./05-observability-pii.md) — FCM tokens are a documented PII carve-out (transmitted to the vendor for delivery; redacted in logs)
 - [04-architecture-docs.md](./04-architecture-docs.md) — the arch-doc convention + the `playbook-coverage-on-new-architecture` ratchet that brought you here
+
+---
+
+**Last updated:** 2026-06-21

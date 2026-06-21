@@ -40,3 +40,7 @@ Add a new row above the line and a new file when these ship in any consuming pro
 ## How to draft an entry
 
 Every playbook entry follows the same shape. See [recipes/add-a-playbook-entry.md](../../recipes/add-a-playbook-entry.md) for the template.
+
+---
+
+**Last updated:** 2026-06-21

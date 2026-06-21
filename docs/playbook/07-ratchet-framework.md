@@ -149,7 +149,7 @@ For example, a `no-bare-error-text-in-features` ratchet would be added new if it
 
 ## 9. The repair-recipe failure message
 
-A ratchet that says "1 violation found" forces the reader to dig through the failure to understand what to do. A ratchet that says "migrate to `t()` via shared/strings/catalogs/en-US.json — see [playbook/08](docs/playbook/08-string-catalog-i18n.md)" tells them. The latter takes 30 seconds longer to write and saves 5 minutes per failure for every future reader.
+A ratchet that says "1 violation found" forces the reader to dig through the failure to understand what to do. A ratchet that says "migrate to `t()` via shared/strings/catalogs/en-US.json — see playbook 08-string-catalog-i18n.md" tells them. The latter takes 30 seconds longer to write and saves 5 minutes per failure for every future reader.
 
 Pattern:
 ```ts
