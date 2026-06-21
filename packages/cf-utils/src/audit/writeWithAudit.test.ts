@@ -69,7 +69,7 @@ describe('writeWithAudit (Transaction)', () => {
   function setup(op: AuditOp) {
     const calls: RecordedCall[] = [];
     const txn = makeTxn(calls);
-    const docRef = makeRef('households/h1/chores/c1', calls);
+    const docRef = makeRef('tenants/t1/items/i1', calls);
     return { calls, txn, docRef, op };
   }
 
@@ -80,16 +80,16 @@ describe('writeWithAudit (Transaction)', () => {
         txn,
         docRef,
         op: 'create',
-        payload: { title: 'Take out trash' },
+        payload: { title: 'Example item' },
         before: null,
-        action: 'CHORE_CREATED',
+        action: 'ITEM_CREATED',
         actor: 'uid-alice',
       });
       expect(calls).toHaveLength(2);
       expect(calls[0]!.kind).toBe('set');
-      expect(calls[0]!.ref.path).toBe('households/h1/chores/c1');
+      expect(calls[0]!.ref.path).toBe('tenants/t1/items/i1');
       expect(calls[1]!.kind).toBe('set');
-      expect(calls[1]!.ref.path).toMatch(/^households\/h1\/chores\/c1\/audit\/auto-/);
+      expect(calls[1]!.ref.path).toMatch(/^tenants\/t1\/items\/i1\/audit\/auto-/);
     });
 
     it('enriches parent with createdBy/updatedBy/lastAction', () => {
@@ -100,14 +100,14 @@ describe('writeWithAudit (Transaction)', () => {
         op: 'create',
         payload: { title: 'X' },
         before: null,
-        action: 'CHORE_CREATED',
+        action: 'ITEM_CREATED',
         actor: 'uid-alice',
       });
       expect(calls[0]!.data).toMatchObject({
         title: 'X',
         createdBy: 'uid-alice',
         updatedBy: 'uid-alice',
-        lastAction: 'CHORE_CREATED',
+        lastAction: 'ITEM_CREATED',
       });
     });
 
@@ -119,18 +119,18 @@ describe('writeWithAudit (Transaction)', () => {
         op: 'create',
         payload: { title: 'X' },
         before: null,
-        action: 'CHORE_CREATED',
+        action: 'ITEM_CREATED',
         actor: 'uid-alice',
       });
       expect(calls[1]!.data).toMatchObject({
         actor: 'uid-alice',
-        action: 'CHORE_CREATED',
+        action: 'ITEM_CREATED',
         beforeData: null,
         afterData: {
           title: 'X',
           createdBy: 'uid-alice',
           updatedBy: 'uid-alice',
-          lastAction: 'CHORE_CREATED',
+          lastAction: 'ITEM_CREATED',
         },
         timestamp: '<server-timestamp>',
       });
@@ -143,13 +143,13 @@ describe('writeWithAudit (Transaction)', () => {
         docRef,
         op: 'create',
         before: null,
-        action: 'CHORE_CREATED',
+        action: 'ITEM_CREATED',
         actor: 'uid-alice',
       });
       expect(calls[0]!.data).toEqual({
         createdBy: 'uid-alice',
         updatedBy: 'uid-alice',
-        lastAction: 'CHORE_CREATED',
+        lastAction: 'ITEM_CREATED',
       });
     });
   });
@@ -163,12 +163,12 @@ describe('writeWithAudit (Transaction)', () => {
         op: 'update',
         payload: { status: 'done' },
         before: { title: 'X', status: 'todo' },
-        action: 'CHORE_MARKED_DONE',
+        action: 'ITEM_UPDATED',
         actor: 'uid-alice',
       });
       expect(calls).toHaveLength(2);
       expect(calls[0]!.kind).toBe('update');
-      expect(calls[0]!.ref.path).toBe('households/h1/chores/c1');
+      expect(calls[0]!.ref.path).toBe('tenants/t1/items/i1');
       expect(calls[1]!.kind).toBe('set');
     });
 
@@ -180,13 +180,13 @@ describe('writeWithAudit (Transaction)', () => {
         op: 'update',
         payload: { status: 'done' },
         before: { title: 'X', status: 'todo' },
-        action: 'CHORE_MARKED_DONE',
+        action: 'ITEM_UPDATED',
         actor: 'uid-alice',
       });
       expect(calls[0]!.data).toMatchObject({
         status: 'done',
         updatedBy: 'uid-alice',
-        lastAction: 'CHORE_MARKED_DONE',
+        lastAction: 'ITEM_UPDATED',
       });
       expect(calls[0]!.data).not.toHaveProperty('createdBy');
     });
@@ -199,7 +199,7 @@ describe('writeWithAudit (Transaction)', () => {
         op: 'update',
         payload: { status: 'done' },
         before: { title: 'X', status: 'todo', createdBy: 'uid-bob' },
-        action: 'CHORE_MARKED_DONE',
+        action: 'ITEM_UPDATED',
         actor: 'uid-alice',
       });
       expect(calls[1]!.data).toMatchObject({
@@ -209,7 +209,7 @@ describe('writeWithAudit (Transaction)', () => {
           status: 'done',
           createdBy: 'uid-bob',
           updatedBy: 'uid-alice',
-          lastAction: 'CHORE_MARKED_DONE',
+          lastAction: 'ITEM_UPDATED',
         },
       });
     });
@@ -222,12 +222,12 @@ describe('writeWithAudit (Transaction)', () => {
         op: 'update',
         payload: { status: 'done' },
         before: null,
-        action: 'CHORE_MARKED_DONE',
+        action: 'ITEM_UPDATED',
         actor: 'uid-alice',
       });
       expect(calls[1]!.data).toMatchObject({
         beforeData: null,
-        afterData: { status: 'done', updatedBy: 'uid-alice', lastAction: 'CHORE_MARKED_DONE' },
+        afterData: { status: 'done', updatedBy: 'uid-alice', lastAction: 'ITEM_UPDATED' },
       });
     });
   });
@@ -240,12 +240,12 @@ describe('writeWithAudit (Transaction)', () => {
         docRef,
         op: 'delete',
         before: { title: 'X', status: 'done' },
-        action: 'CHORE_DELETED',
+        action: 'ITEM_DELETED',
         actor: 'uid-alice',
       });
       expect(calls).toHaveLength(2);
       expect(calls[0]!.kind).toBe('delete');
-      expect(calls[0]!.ref.path).toBe('households/h1/chores/c1');
+      expect(calls[0]!.ref.path).toBe('tenants/t1/items/i1');
       expect(calls[1]!.kind).toBe('set');
     });
 
@@ -256,12 +256,12 @@ describe('writeWithAudit (Transaction)', () => {
         docRef,
         op: 'delete',
         before: { title: 'X', status: 'done' },
-        action: 'CHORE_DELETED',
+        action: 'ITEM_DELETED',
         actor: 'uid-alice',
       });
       expect(calls[1]!.data).toMatchObject({
         actor: 'uid-alice',
-        action: 'CHORE_DELETED',
+        action: 'ITEM_DELETED',
         beforeData: { title: 'X', status: 'done' },
         afterData: null,
         timestamp: '<server-timestamp>',
@@ -276,7 +276,7 @@ describe('writeWithAudit (Transaction)', () => {
         op: 'delete',
         payload: { ignored: 'value' },
         before: { title: 'X' },
-        action: 'CHORE_DELETED',
+        action: 'ITEM_DELETED',
         actor: 'uid-alice',
       });
       // No write of payload on delete; only the delete call lands on parent.
@@ -292,23 +292,23 @@ describe('writeWithAudit (Transaction)', () => {
         txn,
         docRef,
         op: 'update',
-        payload: { refresh_token: 'NEW_SECRET', scope: 'tasks' },
-        before: { refresh_token: 'OLD_SECRET', scope: 'calendar' },
-        action: 'CALENDAR_REFRESH',
+        payload: { refresh_token: 'NEW_SECRET', scope: 'write' },
+        before: { refresh_token: 'OLD_SECRET', scope: 'read' },
+        action: 'CREDENTIAL_REFRESH',
         actor: 'uid-alice',
         redactFields: ['refresh_token'],
       });
       // Parent doc keeps the real value (it's needed for API calls).
       expect(calls[0]!.data).toMatchObject({
         refresh_token: 'NEW_SECRET',
-        scope: 'tasks',
+        scope: 'write',
       });
       // Audit redacts both before + after.
       expect(calls[1]!.data).toMatchObject({
-        beforeData: { refresh_token: '<redacted>', scope: 'calendar' },
+        beforeData: { refresh_token: '<redacted>', scope: 'read' },
         afterData: expect.objectContaining({
           refresh_token: '<redacted>',
-          scope: 'tasks',
+          scope: 'write',
         }),
       });
     });
@@ -321,7 +321,7 @@ describe('writeWithAudit (Transaction)', () => {
         op: 'create',
         payload: { refresh_token: 'SECRET' },
         before: null,
-        action: 'CALENDAR_CONNECT',
+        action: 'CREDENTIAL_CONNECT',
         actor: 'uid-alice',
         redactFields: ['refresh_token'],
       });
@@ -340,7 +340,7 @@ describe('writeWithAudit (Transaction)', () => {
         docRef,
         op: 'delete',
         before: { refresh_token: 'SECRET' },
-        action: 'CALENDAR_REVOKE',
+        action: 'CREDENTIAL_REVOKE',
         actor: 'uid-alice',
         redactFields: ['refresh_token'],
       });
@@ -397,7 +397,7 @@ describe('writeWithAudit (Transaction)', () => {
       action: 'X',
       actor: 'uid-a',
     });
-    expect(calls[1]!.ref.path).toMatch(/^households\/h1\/chores\/c1\/audit\//);
+    expect(calls[1]!.ref.path).toMatch(/^tenants\/t1\/items\/i1\/audit\//);
   });
 });
 
@@ -409,14 +409,14 @@ describe('writeWithAuditBatch (WriteBatch parity)', () => {
   it('create: parent (set) + audit (set) parity with Transaction overload', () => {
     const calls: RecordedCall[] = [];
     const batch = makeBatch(calls);
-    const docRef = makeRef('households/h1/chores/c1', calls);
+    const docRef = makeRef('tenants/t1/items/i1', calls);
     writeWithAuditBatch({
       batch,
       docRef,
       op: 'create',
       payload: { title: 'X' },
       before: null,
-      action: 'CHORE_CREATED',
+      action: 'ITEM_CREATED',
       actor: 'uid-a',
     });
     expect(calls).toHaveLength(2);
@@ -429,7 +429,7 @@ describe('writeWithAuditBatch (WriteBatch parity)', () => {
   it('update: parent (update) + audit (set) parity', () => {
     const calls: RecordedCall[] = [];
     const batch = makeBatch(calls);
-    const docRef = makeRef('households/h1/chores/c1', calls);
+    const docRef = makeRef('tenants/t1/items/i1', calls);
     writeWithAuditBatch({
       batch,
       docRef,
@@ -446,7 +446,7 @@ describe('writeWithAuditBatch (WriteBatch parity)', () => {
   it('delete: parent (delete) + audit (set) parity', () => {
     const calls: RecordedCall[] = [];
     const batch = makeBatch(calls);
-    const docRef = makeRef('households/h1/chores/c1', calls);
+    const docRef = makeRef('tenants/t1/items/i1', calls);
     writeWithAuditBatch({
       batch,
       docRef,
@@ -462,14 +462,14 @@ describe('writeWithAuditBatch (WriteBatch parity)', () => {
   it('redactFields apply on batch overload too', () => {
     const calls: RecordedCall[] = [];
     const batch = makeBatch(calls);
-    const docRef = makeRef('households/h1/private/calendarAuth', calls);
+    const docRef = makeRef('tenants/t1/private/credentials', calls);
     writeWithAuditBatch({
       batch,
       docRef,
       op: 'create',
       payload: { refresh_token: 'SECRET' },
       before: null,
-      action: 'CALENDAR_CONNECT',
+      action: 'CREDENTIAL_CONNECT',
       actor: 'uid-a',
       redactFields: ['refresh_token'],
     });

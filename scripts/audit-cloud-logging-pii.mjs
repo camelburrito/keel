@@ -35,7 +35,7 @@ const PII_PATTERNS = [
   { name: 'email', re: /\b[\w.+-]+@[\w-]+\.[\w.-]+\b/g },
   { name: 'phone-E.164', re: /\+\d{7,15}\b/g },
   { name: 'firebase-uid-28', re: /\b[a-zA-Z0-9]{28}\b/g },
-  { name: 'firestore-path-with-id', re: /\/(?:users|households|members)\/[a-zA-Z0-9]{20,28}/g },
+  { name: 'firestore-path-with-id', re: /\/(?:users|accounts|tenants)\/[a-zA-Z0-9]{20,28}/g },
   { name: 'fcm-token', re: /[a-zA-Z0-9_-]{140,}:APA91[a-zA-Z0-9_-]+/g },
   { name: 'oauth-refresh-token', re: /\b1\/\/[\w-]{50,}\b/g },
   // TODO: add domain-specific patterns (calendar v3 PII keys, contacts PII keys, etc.)

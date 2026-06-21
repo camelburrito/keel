@@ -1,6 +1,5 @@
 // Detects inline `style={{...}}` JSX props + `createElement(<tag>, { style: {...} })`
-// variants. The createElement form closes the bypass that JSX-only regex misses
-// (chorz PR #585 lesson).
+// variants. The createElement form closes the bypass that JSX-only regex misses.
 
 import { stripTsLineAndBlockComments, runRatchet, type RatchetConfig } from '../helpers';
 

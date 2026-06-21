@@ -28,24 +28,24 @@ describe('validateString', () => {
 
 describe('validateEmail', () => {
   it('returns lower-cased trimmed valid email', () => {
-    expect(validateEmail('  ALICE@EXAMPLE.COM  ', { field: 'member/email' }))
+    expect(validateEmail('  ALICE@EXAMPLE.COM  ', { field: 'user/email' }))
       .toBe('alice@example.com');
   });
 
   it('throws <entity>/invalid-email on bad format', () => {
-    expect(() => validateEmail('not-an-email', { field: 'member/email' }))
-      .toThrowError('member/invalid-email');
+    expect(() => validateEmail('not-an-email', { field: 'user/email' }))
+      .toThrowError('user/invalid-email');
   });
 
   it('throws <field>-required when missing required', () => {
-    expect(() => validateEmail(undefined, { field: 'member/email', required: true }))
-      .toThrowError('member/email-required');
+    expect(() => validateEmail(undefined, { field: 'user/email', required: true }))
+      .toThrowError('user/email-required');
   });
 
   it('throws <field>-too-long when exceeding maxLen', () => {
     const long = 'a'.repeat(250) + '@x.io'; // 255 chars
-    expect(() => validateEmail(long, { field: 'member/email' }))
-      .toThrowError('member/email-too-long');
+    expect(() => validateEmail(long, { field: 'user/email' }))
+      .toThrowError('user/email-too-long');
   });
 });
 
@@ -118,41 +118,41 @@ describe('validateString — edge cases', () => {
 
 describe('validateEmail — edge cases', () => {
   it('accepts mixed-case domain (lower-cases everything)', () => {
-    expect(validateEmail('Alice@EXAMPLE.COM', { field: 'member/email' })).toBe(
+    expect(validateEmail('Alice@EXAMPLE.COM', { field: 'user/email' })).toBe(
       'alice@example.com',
     );
   });
 
   it('rejects email with no @ symbol', () => {
-    expect(() => validateEmail('alice.example.com', { field: 'member/email' }))
-      .toThrowError('member/invalid-email');
+    expect(() => validateEmail('alice.example.com', { field: 'user/email' }))
+      .toThrowError('user/invalid-email');
   });
 
   it('rejects email with no domain dot', () => {
-    expect(() => validateEmail('alice@example', { field: 'member/email' }))
-      .toThrowError('member/invalid-email');
+    expect(() => validateEmail('alice@example', { field: 'user/email' }))
+      .toThrowError('user/invalid-email');
   });
 
   it('rejects email with embedded whitespace', () => {
-    expect(() => validateEmail('alice @example.com', { field: 'member/email' }))
-      .toThrowError('member/invalid-email');
+    expect(() => validateEmail('alice @example.com', { field: 'user/email' }))
+      .toThrowError('user/invalid-email');
   });
 
   it('honors custom maxLen ceiling', () => {
     const short = 'aa@bb.io'; // 8 chars
-    expect(validateEmail(short, { field: 'member/email', maxLen: 10 })).toBe(short);
-    expect(() => validateEmail('a'.repeat(20) + '@x.io', { field: 'member/email', maxLen: 10 }))
-      .toThrowError('member/email-too-long');
+    expect(validateEmail(short, { field: 'user/email', maxLen: 10 })).toBe(short);
+    expect(() => validateEmail('a'.repeat(20) + '@x.io', { field: 'user/email', maxLen: 10 }))
+      .toThrowError('user/email-too-long');
   });
 
   it('returns undefined for optional missing input', () => {
-    expect(validateEmail(undefined, { field: 'member/email' })).toBeUndefined();
-    expect(validateEmail('   ', { field: 'member/email' })).toBeUndefined();
+    expect(validateEmail(undefined, { field: 'user/email' })).toBeUndefined();
+    expect(validateEmail('   ', { field: 'user/email' })).toBeUndefined();
   });
 
   it('error code uses first segment as entity (slash-prefix)', () => {
-    expect(() => validateEmail('not-an-email', { field: 'household/owner/email' }))
-      .toThrowError('household/invalid-email');
+    expect(() => validateEmail('not-an-email', { field: 'tenant/owner/email' }))
+      .toThrowError('tenant/invalid-email');
   });
 
   it('error code is field-as-entity when no slash', () => {

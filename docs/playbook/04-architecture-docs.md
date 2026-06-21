@@ -1,7 +1,6 @@
 # 04 — Architecture Docs Convention
 
 **Status:** 🟢 drafted
-**Reference impl:** `chorz/docs/architecture/`, `chorz/.claude/hooks/architecture-doc-drift.sh`, `chorz/src/__tests__/arch-doc-cf-claims.test.ts`
 
 ---
 
@@ -23,7 +22,7 @@ Drift is the failure mode. Architecture docs that ship inaccurate after 3 months
 - One doc per major subsystem: auth, data model, audit trail, design system, state machines, cloud functions, observability, etc. Add new ones as systems stabilize, not aspirationally.
 - Each doc carries a `Last updated: YYYY-MM-DD (<phase or quick name>)` footer; re-anchor it when you ship a change that affects the system.
 - PostToolUse hook at `.claude/hooks/architecture-doc-drift.sh` — flags edits to files cited by name in any arch doc.
-- Value-based parsers for claims the citation hook can't catch (counts, rate limits, version numbers). Chorz's `arch-doc-cf-claims.test.ts` is the canonical example.
+- Value-based parsers for claims the citation hook can't catch (counts, rate limits, version numbers). A `src/__tests__/arch-doc-<system>-claims.test.ts` that parses both the source and the doc is the canonical pattern.
 - `archDocIntegrity` from `@camelburrito/ratchet-kit` wired into the ratchet suite — every link/anchor/cited-path resolves, mermaid has no renderer traps, footer present. Strict-zero.
 - The authoring contract itself: see [`templates/_AUTHORING.md`](../../templates/_AUTHORING.md) — the four principles, the mechanical/judgment split, the pre-PR checklist.
 - Updates land **in the same PR** as the code change — never deferred to a follow-up.
@@ -34,17 +33,17 @@ Drift is the failure mode. Architecture docs that ship inaccurate after 3 months
 
 ### Tier 1 — citation hook
 
-`.claude/hooks/architecture-doc-drift.sh` runs after every `Edit` / `Write` tool call. It greps every `docs/architecture/*.md` for citations matching file paths (e.g., `src/lib/firebase/auth.ts`, `functions/src/chores/transitionChoreStatus.ts`). When the just-edited file appears in any doc's body, the hook emits a reminder: "this file is cited by `docs/architecture/<doc>.md`; consider whether the doc needs to be updated in the same PR."
+`.claude/hooks/architecture-doc-drift.sh` runs after every `Edit` / `Write` tool call. It greps every `docs/architecture/*.md` for citations matching file paths (e.g., `src/lib/auth.ts`, `server/src/handlers/processOrder.ts`). When the just-edited file appears in any doc's body, the hook emits a reminder: "this file is cited by `docs/architecture/<doc>.md`; consider whether the doc needs to be updated in the same PR."
 
 The hook is project-scoped in `.claude/settings.json`. It's a reminder, not a blocker — the editor decides whether the change is doc-relevant. The reminder is the load-bearing part; without it, you forget.
 
 ### Tier 2 — value-based parsers
 
-The citation hook only fires on path-cited files. For claims that aren't file-citations (e.g., "the default codebase has 30 onCall handlers", "calendar codebase rate limits are 5/min for OAuth"), the hook can't help. Value-based parsers fill the gap:
+The citation hook only fires on path-cited files. For claims that aren't file-citations (e.g., "the API exposes 30 handlers", "the OAuth endpoints rate-limit at 5/min"), the hook can't help. Value-based parsers fill the gap:
 
-- `chorz/src/__tests__/arch-doc-cf-claims.test.ts` — parses `functions/src/**/*.ts` for ground truth (onCall handler count, per-CF `checkRateLimit` values), then parses `docs/architecture/cloud-functions.md`, then asserts claims match. Failure message points at exactly which claim drifted with the new value to drop in.
+- A `src/__tests__/arch-doc-<system>-claims.test.ts` — parses the source tree for ground truth (e.g., a handler count, per-handler rate-limit values), then parses `docs/architecture/<system>.md`, then asserts the doc's claims match. The failure message points at exactly which claim drifted, with the new value to drop in.
 
-The pattern is generalizable: for any documented numeric claim ("we have N CFs", "K database collections", "M strict-zero ratchets in the pre-commit list"), write a parser that reads the source AND the doc claim and asserts equality. Strict-zero from day 1 — there's no carve-out for "stale claim, will fix later" because the carve-out IS the bug.
+The pattern is generalizable: for any documented numeric claim ("we have N handlers", "K database collections", "M strict-zero ratchets in the pre-commit list"), write a parser that reads the source AND the doc claim and asserts equality. Strict-zero from day 1 — there's no carve-out for "stale claim, will fix later" because the carve-out IS the bug.
 
 ### Tier 3 — integrity ratchet
 
@@ -57,7 +56,7 @@ The citation hook and value parsers both assume the doc's _structure_ is sound �
 
 Strict-zero from day 1: the carve-out for "broken link, will fix later" IS the bug. The judgment half of the contract — readable intros, content-named sections, a diagram per subsystem, grounded claims — can't be mechanized and lives in [`templates/_AUTHORING.md`](../../templates/_AUTHORING.md) + the pre-PR checklist there.
 
-> **The ratchet is a heuristic, not a full parse — the authoritative mermaid check is a real render.** `archDocIntegrity` text-scans for known trap classes; it cannot prove a diagram renders. Twice now a clean ratchet has shipped diagrams that broke on GitHub: four parse-aborting diagrams slipped a pre-render ratchet, and an entire fleet of diagrams went illegible in dark mode before the `classDef`-color rule existed. The reusable check is [`scripts/check-mermaid-render.mjs`](../../scripts/check-mermaid-render.mjs) — it runs every ` ```mermaid ` block through the real engine (`mermaid.parse()` under jsdom; `npm i -D mermaid jsdom`, both browser-free — no headless Chromium) and reports `file:line` for any block that fails. Wire it as a `check:mermaid` script and run it in CI / pre-merge alongside the ratchet suite. "Looks fine in mermaid.live" is not "renders on GitHub," and a green ratchet is not a guarantee. When a new trap surfaces, **ground the rule against the real parser first** (this helper is how), then add it to `findMermaidTraps`/`findContrastTraps` and a row here.
+> **The ratchet is a heuristic, not a full parse — the authoritative mermaid check is a real render.** `archDocIntegrity` text-scans for known trap classes; it cannot prove a diagram renders. A clean ratchet has shipped broken diagrams more than once: parse-aborting diagrams have slipped a pre-render ratchet, and a whole fleet of diagrams once went illegible in GitHub dark mode before the `classDef`-color rule existed. The reusable check is [`scripts/check-mermaid-render.mjs`](../../scripts/check-mermaid-render.mjs) — it runs every ` ```mermaid ` block through the real engine (`mermaid.parse()` under jsdom; `npm i -D mermaid jsdom`, both browser-free — no headless Chromium) and reports `file:line` for any block that fails. Wire it as a `check:mermaid` script and run it in CI / pre-merge alongside the ratchet suite. "Looks fine in mermaid.live" is not "renders on GitHub," and a green ratchet is not a guarantee. When a new trap surfaces, **ground the rule against the real parser first** (this helper is how), then add it to `findMermaidTraps`/`findContrastTraps` and a row here.
 
 ---
 
@@ -95,7 +94,7 @@ Per-environment commands, common triage flows, on-call references.
 **Last updated:** YYYY-MM-DD (<phase or quick name>).
 ```
 
-The chorz `docs/architecture/cloud-functions.md`, `pii-handling.md`, `calendar-oauth-and-scheduling.md`, and `data-model.md` all follow this shape. Look at any of them for a concrete example.
+Every doc in a mature `docs/architecture/` tree — the cloud-functions reference, the PII inventory, the OAuth/scheduling reference, the data-model reference — follows this shape. Pick the doc nearest the subsystem you're documenting and mirror its structure.
 
 ---
 
@@ -159,10 +158,14 @@ For PRs touching UI, the pre-merge checklist's "Architecture docs" section asks 
 
 ## Reference reading
 
-- `chorz/docs/architecture/README.md` — index of 9 docs
-- `chorz/docs/architecture/cloud-functions.md` — exemplar with both citation hook AND value-parser ratchet defending it
-- `chorz/docs/architecture/pii-handling.md` — the canonical PII inventory (see [05-observability-pii.md](05-observability-pii.md))
-- `chorz/docs/architecture/calendar-oauth-and-scheduling.md` — exemplar with mermaid sequence diagrams + Pitfalls section
-- `chorz/.claude/hooks/architecture-doc-drift.sh` — citation-based PostToolUse hook
-- `chorz/src/__tests__/arch-doc-cf-claims.test.ts` — value-based parser ratchet
-- `chorz/.claude/skills/systems-architecture-doc/` — the skill that documents how to write a new arch doc end-to-end
+- `docs/architecture/README.md` — the index doc listing every arch doc with status + last-updated date.
+- A subsystem doc defended by BOTH the citation hook AND a value-parser ratchet — the strongest example to model new docs on.
+- A PII-inventory doc (see [05-observability-pii.md](05-observability-pii.md)).
+- A subsystem doc with mermaid sequence diagrams + a Pitfalls section.
+- `.claude/hooks/architecture-doc-drift.sh` — the citation-based PostToolUse hook.
+- `src/__tests__/arch-doc-<system>-claims.test.ts` — the value-based parser ratchet pattern.
+- The `systems-architecture-doc` skill — documents how to write a new arch doc end-to-end.
+
+---
+
+**Last updated:** 2026-06-21 — app-agnostic rewrite for the standalone keel baseline.

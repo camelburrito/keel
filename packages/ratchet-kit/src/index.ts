@@ -97,6 +97,6 @@ export {
 export type { NoAdaptiveFgOnKeptLightIslandConfig } from './ratchets/no-adaptive-fg-on-kept-light-island';
 
 // Future versions graduate more ratchets as patterns prove portable across
-// downstream products. Project-specific ratchets (e.g., `no-legacy-kid-cta-token`
-// in chorz) live in the project's own src/__tests__/ — see
-// recipes/add-a-ratchet.md.
+// downstream products. Project-specific ratchets (e.g., one locking a renamed
+// design token out of the codebase) live in the project's own src/__tests__/ —
+// see recipes/add-a-ratchet.md.

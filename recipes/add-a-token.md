@@ -17,13 +17,13 @@ The user-level rule `feedback_no_new_tokens_without_approval` says: snap to the 
 Don't add a token. Use a named TypeScript/CSS/Swift constant with a Mandate-3 comment:
 
 ```ts
-const TOAST_REVIEW_HOLD_MS = 6000; // Design-intent constant — explicit user-review pause (see GH #309)
+const TOAST_REVIEW_HOLD_MS = 6000; // Design-intent constant — explicit user-review pause (see GH #<issue>)
 ```
 
 Or in Swift:
 
 ```swift
-let ctaHeight: CGFloat = 64 // Design-intent constant — kid-finger tap target (see GH #309)
+let ctaHeight: CGFloat = 64 // Design-intent constant — minimum tap target (see GH #<issue>)
 ```
 
 The `// Design-intent constant — <reason> (see GH #<issue>)` comment shape is what the bare-literal ratchets recognize as a legitimate carve-out.

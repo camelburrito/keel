@@ -38,4 +38,4 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: ./node_modules/.bin/vitest run --coverage
-      # TODO: chain coverage for shared-cf-utils + functions + functions-<codebase> as workspaces appear.
+      # TODO: chain coverage for packages/cf-utils + functions + functions-<codebase> as workspaces appear.

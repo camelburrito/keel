@@ -2,7 +2,7 @@
 
 Agnostic Cloud Functions utilities for the keel-derived projects.
 
-**Status:** scaffold. Extraction from `chorz/shared-cf-utils/` planned. See [keel playbook 09-firebase-stack.md](../../docs/playbook/09-firebase-stack.md) and [05-observability-pii.md](../../docs/playbook/05-observability-pii.md).
+**Status:** implemented (v0.3.1). See [keel playbook 09-firebase-stack.md](../../docs/playbook/09-firebase-stack.md) and [05-observability-pii.md](../../docs/playbook/05-observability-pii.md).
 
 ## What this package provides
 

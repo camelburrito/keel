@@ -2,6 +2,18 @@
 
 All notable changes to `@camelburrito/ratchet-kit` are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Semver.
 
+## [0.7.3]
+
+### Added (consolidated 0.4.0 → 0.7.3)
+- **0.4.x:** `noBareFontPropertyInCss`, `noBareViewportEmInCss`, `noStaleE2eSelectors`, `noPathsFilterWithoutFetchDepthZero`.
+- **0.5.x:** `noBareHexInCodegenOutput`, `lockfileSyncWithPackageJson`, `ratchetListPrecommitVsWorkflow`.
+- **0.6.x:** `noUndefinedTokens`.
+- **0.7.x:** `archDocIntegrity` (link/anchor/cited-path resolution + mermaid render-trap + classDef contrast + footer checks), `noAdaptiveFgOnKeptLightIsland` (dark-mode foreground-on-island polarity; adaptive set self-derived from `tokens.json` `darkColor`).
+
+Total ratchet templates: 13 → 23.
+
+_(Per-version dates between 0.3.0 and 0.7.3 were not recorded individually; this entry consolidates the additions in that range.)_
+
 ## [0.3.0] — 2026-06-05
 
 ### Added — Swift design-system completeness pack
@@ -25,4 +37,4 @@ Total ratchet exports: 5 → 9. Helpers + types unchanged. 33 → 48 test cases.
 ## [0.1.0] — 2026-06-05
 
 ### Added
-- Initial extraction from chorz/src/__tests__. Helpers (`stripTsLineAndBlockComments`, `stripSwiftCommentsAndDebugBlocks`, `stripSwiftPreviewBlocks`, `countMatchesIgnoringBrands`, `checkDeferralCount`, `walkFiles`, `runRatchet`) + 5 most-portable structural ratchet templates: `noInlineStyle`, `noBareHexInTsx`, `noBareHexInCss`, `noBarePxInCss`, `noConsoleInSource`. 33 smoke-test cases.
+- Initial extraction. Helpers (`stripTsLineAndBlockComments`, `stripSwiftCommentsAndDebugBlocks`, `stripSwiftPreviewBlocks`, `countMatchesIgnoringBrands`, `checkDeferralCount`, `walkFiles`, `runRatchet`) + 5 most-portable structural ratchet templates: `noInlineStyle`, `noBareHexInTsx`, `noBareHexInCss`, `noBarePxInCss`, `noConsoleInSource`. 33 smoke-test cases.

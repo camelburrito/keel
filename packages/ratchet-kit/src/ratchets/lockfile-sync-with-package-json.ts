@@ -99,7 +99,7 @@ function loadCodebasesFromFirebaseJson(
  *     repoRoot: process.cwd(),
  *     codebases: [
  *       { source: 'functions', codebase: 'default' },
- *       { source: 'functions-calendar', codebase: 'calendar' },
+ *       { source: 'functions-secondary', codebase: 'secondary' },
  *     ],
  *   });
  *

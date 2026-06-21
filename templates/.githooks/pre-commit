@@ -34,6 +34,6 @@ echo "[pre-commit] running tsc --noEmit..."
 npx tsc --noEmit
 # TODO: add per-workspace tsc gates as workspaces appear:
 # (cd functions && npx tsc --noEmit)
-# (cd shared-cf-utils && npx tsc --noEmit)
+# (cd packages/cf-utils && npx tsc --noEmit)
 
 echo "[pre-commit] OK"

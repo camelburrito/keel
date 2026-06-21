@@ -2,21 +2,21 @@
 
 Private engineering baseline for production apps under `camelburrito/`.
 
-`keel` is a **playbook + scaffolds + vendored packages** repository. It's the foundation every new production project starts from. The chorz family-chore app is the canonical reference implementation; the patterns proven there flow up into keel and back down into the next project.
+`keel` is a **standalone, app-agnostic playbook + scaffolds + vendored packages** repository. It's the foundation every new production project starts from. Patterns are proven in real production projects, generalized here so they carry no app-specific detail, and flow back into keel through an app-agnostic upstreaming process (see [recipes/upstream-an-improvement.md](recipes/upstream-an-improvement.md)). keel names no specific downstream project; any project (current or future) is just a consumer.
 
 ## What's here
 
-**`docs/playbook/`** — methodology docs (one per system). These capture the WHY and the structural assertions you must satisfy. They're instructions, not code. Refer back to chorz (`camelburrito/chorz`) for canonical reference implementations.
+**`docs/playbook/`** — methodology docs (one per system). These capture the WHY, the structural assertions you must satisfy, and the generic pattern itself. They are self-contained and app-agnostic — the only paths they contain are generic conventions (e.g. `functions/src/`).
 
 **`templates/`** — empty scaffolds that get copied into new projects at bootstrap time. POSIX-bash githooks, deny-all `firestore.rules`, base `tsconfig.json` / `eslint.config.js` / `vitest.config.ts`, parametrized GHA workflows, `.env.{staging,prod}.example` field conventions.
 
 **`packages/`** — truly agnostic code, published to GitHub Packages as `@camelburrito/<pkg>`:
 - `cf-utils` — logger with 7-layer PII redact pipeline, `writeWithAudit`, `idempotency`, `rateLimit`, `validation`, `wrapHandler` + `OAUTH_SECRET_FIELDS`
-- `ratchet-kit` — `_ratchetHelpers` + ~22 structural ratchet templates as configurable functions
+- `ratchet-kit` — shared ratchet helpers + 23 structural ratchet templates as configurable functions
 
 **`scripts/`** — agnostic build/CI/audit scripts (parametrized): `ci-local.sh` skeleton, `gen-strings.mjs`, `gen-tokens.mjs`, `audit-cloud-logging-pii.mjs`, `predeploy-pack-cf-utils.sh`.
 
-**`recipes/`** — "how to add X" guides (new ratchet, new architecture doc, new CF, new locale, new environment).
+**`recipes/`** — "how to add X" guides (new ratchet, new architecture doc, new CF, new locale, new environment) plus [upstream-an-improvement.md](recipes/upstream-an-improvement.md), the app-agnostic contribution gate.
 
 **`checklists/`** — pre-launch, pre-merge, pre-deploy checklists.
 
@@ -36,11 +36,11 @@ cd my-new-app
 
 ## Keeping keel fresh
 
-When chorz (or any reference project) adds a significant new architecture (notifications, Android client, payments, etc.):
-1. Land it in the reference project first, with `docs/architecture/<system>.md`.
-2. Open a PR on keel that adds the matching `docs/playbook/<NN>-<system>.md` and any vendorable pieces in `packages/` or `templates/`.
-3. The `playbook-coverage-on-new-architecture` ratchet on the reference project enforces this — adding a new arch doc without a matching keel playbook entry trips the gate.
+When a consuming project adds a significant new architecture (notifications, Android client, payments, etc.) or finds an improvement to an existing pattern:
+1. Land it in the consuming project first, proven against its own tests.
+2. Generalize it — strip every app-specific name, path, and identifier — and open a keel PR that adds/updates the matching `docs/playbook/<NN>-<system>.md` plus any vendorable pieces in `packages/`, `scripts/`, or `templates/`. See [recipes/upstream-an-improvement.md](recipes/upstream-an-improvement.md) for the agnosticism gate.
+3. A consuming project's `playbook-coverage-on-new-architecture` ratchet enforces the reverse direction — adding a new arch doc there without a matching keel playbook entry trips the gate.
 
 ## Status
 
-Bootstrapped 2026-06-04. **All 11 playbook entries 🟢 drafted** (01..11). Pilot full entry: `05-observability-pii.md`. Next steps: extract `@camelburrito/cf-utils` from chorz's `shared-cf-utils/`, extract `@camelburrito/ratchet-kit` from chorz's `_ratchetHelpers.ts` + `no-*.test.ts`, then publish v0.1.0 of each to GitHub Packages. See [docs/playbook/00-index.md](docs/playbook/00-index.md) for the full table of contents and per-entry status.
+Bootstrapped 2026-06-04. **12 of 13 playbook entries 🟢 drafted** (01..12; 13 🟡 outlined). `@camelburrito/ratchet-kit` (v0.7.3 — 23 ratchet templates) and `@camelburrito/cf-utils` (v0.3.1 — logger, audit, rate-limit, idempotency, validation) are both implemented in `packages/`. See [docs/playbook/00-index.md](docs/playbook/00-index.md) for the full table of contents and per-entry status.

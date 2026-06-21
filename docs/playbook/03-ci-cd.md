@@ -1,7 +1,6 @@
 # 03 — CI/CD Philosophy
 
 **Status:** 🟢 drafted
-**Reference impl:** `chorz/scripts/ci-local.sh`, `chorz/.githooks/`, `chorz/.github/workflows/test-coverage.yml`, `chorz/src/__tests__/ci-local-mirrors-workflow.test.ts`
 
 ---
 
@@ -11,9 +10,9 @@
 
 1. **Pre-push runs `scripts/ci-local.sh` — pass locally ≈ pass on CI.** No surprises after pushing.
 2. **CI never grows a check that's invisible locally.** Drift is caught by a ratchet (`ci-local-mirrors-workflow.test.ts`) that fails fast when CI gets a step the local script doesn't mirror.
-3. **When CI dies, local gates still work.** GHA's free-tier quota cliff is a recurring event (chorz hit it 3+ times in one quarter; the user-memory rule `project_gha_disabled` documents it). A `scripts/post-local-ci-status.cjs` posts green statuses directly via the GitHub Status API so the PR doesn't look red for purely infrastructural reasons.
+3. **When CI dies, local gates still work.** A hosted CI provider's free-tier quota cliff is a recurring event for any busy project. A `scripts/post-local-ci-status.cjs` posts green statuses directly via the provider's Status API so the PR doesn't look red for purely infrastructural reasons.
 
-The corollary: **never use `git push --no-verify` while GHA is offline.** Pre-push is the only safety gate during quota-cliff windows. The CLAUDE.md operational rule and user-memory rule `feedback_no_verify_during_gha_outage` both lock this.
+The corollary: **never use `git push --no-verify` while CI is offline.** Pre-push is the only safety gate during quota-cliff windows. Lock this with an operational rule.
 
 ---
 
@@ -24,7 +23,7 @@ The corollary: **never use `git push --no-verify` while GHA is offline.** Pre-pu
 - `.githooks/pre-push` — full `ci-local.sh` mirror; path-filtered for expensive native (iOS/Android) builds.
 - `npm install` postinstall sets `git config core.hooksPath .githooks` so a fresh clone gets hooks automatically. No husky / lint-staged dependency.
 - A drift-gate ratchet (`ci-local-mirrors-workflow.test.ts`) parses both files and fails on step-name mismatch.
-- `npm run check:coverage` invokes vitest via the **direct binary path** `./node_modules/.bin/vitest`, NOT `npx vitest --coverage`. The latter can be exit-code-masked by tooling that rewrites `npx` invocations (chorz hit this with RTK). The direct binary path preserves the real exit code.
+- `npm run check:coverage` invokes vitest via the **direct binary path** `./node_modules/.bin/vitest`, NOT `npx vitest --coverage`. The latter can be exit-code-masked by tooling that rewrites `npx` invocations (some shell-proxy tools silently swallow the non-zero exit on a threshold-violation run). The direct binary path preserves the real exit code.
 
 ---
 
@@ -61,7 +60,7 @@ Each step is a self-contained block in the script body. Adding a step:
 | **Pre-push (native-touching)** | full `ci-local.sh` | ~5–8 min on Mac | Adds iOS xcodebuild + per-target floors. Path-filtered, so only native-touching pushes pay. |
 | **CI** | mirrors local script step-for-step | varies | Backup catcher. With local-first discipline, "pass on CI when local already passed" is the expectation, not a hope. |
 
-The path-filter on pre-push native mirrors the GHA workflow's `paths-filter` job exactly. Same regex, same intent. Non-native pushes pay 0 cost for iOS work; native pushes pay it once locally instead of waiting for CI.
+The path-filter on pre-push native mirrors the CI workflow's `paths-filter` job exactly. Same regex, same intent. Non-native pushes pay 0 cost for iOS work; native pushes pay it once locally instead of waiting for CI.
 
 ---
 
@@ -71,25 +70,25 @@ The path-filter on pre-push native mirrors the GHA workflow's `paths-filter` job
 
 ```
 ./node_modules/.bin/vitest run --coverage \
-  && (cd shared-cf-utils && ./node_modules/.bin/vitest run --coverage) \
+  && (cd packages/cf-utils && ./node_modules/.bin/vitest run --coverage) \
   && (cd functions && ./node_modules/.bin/vitest run --coverage) \
   && (cd functions-<extra-codebase> && ./node_modules/.bin/vitest run --coverage)
 ```
 
-Each workspace holds its own floor (chorz uses 100% on each CF workspace; tune per project). Drift between local script and CI workflow's coverage jobs is locked by `ci-local-mirrors-workflow.test.ts`.
+Each workspace holds its own floor (a strict project can run 100% on each CF workspace; tune per project). Drift between local script and CI workflow's coverage jobs is locked by `ci-local-mirrors-workflow.test.ts`.
 
 **iOS per-target floors** are enforced by `apple/scripts/check-coverage-floors.sh` (template at `templates/scripts/check-coverage-floors.sh`) with partial-mode SKIP semantics — see [06-testing-cadence.md § "Sub-pattern: per-target iOS coverage floors"](06-testing-cadence.md).
 
 ---
 
-## 5. GHA-quota-cliff fallback
+## 5. CI-quota-cliff fallback
 
-GitHub Actions has a 2000-minute/month free-tier cap. A busy project blows past it. When it does, every workflow run dies at 4–7s with empty `runner_name` and "The job was not started because recent account payments have failed" in the logs.
+Hosted CI providers cap free-tier build minutes (a common cap is ~2000 minutes/month). A busy project blows past it. When it does, every workflow run dies in a few seconds with empty runner metadata and a "the job was not started because recent account payments have failed" message in the logs — the failure mode is distinctive (empty `runner_name`, 4–7s job duration) so you can recognize it on sight.
 
 Two layers of defense:
 
-1. **`scripts/post-local-ci-status.cjs`** — best-effort script invoked by pre-push after successful `ci-local.sh`. Posts per-step green statuses to the PR via the GitHub Status API. Bypasses the 4–red-checks PR noise (Coverage / Functions Integration / Local Test State Preflight / Paths Filter) that purely infrastructural quota-cliff failures produce.
-2. **Operator discipline** — don't bypass pre-push with `--no-verify` to "ship around" the quota cliff. The CLAUDE.md operational rule and memory rule lock this. Fix the underlying test if pre-push fails.
+1. **`scripts/post-local-ci-status.cjs`** — best-effort script invoked by pre-push after successful `ci-local.sh`. Posts per-step green statuses to the PR via the provider's Status API. Bypasses the red-checks PR noise (Coverage / Functions Integration / Local Test State Preflight / Paths Filter) that purely infrastructural quota-cliff failures produce.
+2. **Operator discipline** — don't bypass pre-push with `--no-verify` to "ship around" the quota cliff. Lock this with an operational rule. Fix the underlying test if pre-push fails.
 
 When quota recovers (~30-day reset), the workflows re-enable themselves automatically; nothing to clean up.
 
@@ -97,18 +96,20 @@ When quota recovers (~30-day reset), the workflows re-enable themselves automati
 
 ## 6. The `paths-filter` shallow-clone trap
 
-`dorny/paths-filter@v3` diffs `github.event.before..github.sha` to detect changed files. If `actions/checkout@v4` uses its default `fetch-depth: 1`, the `event.before` SHA is unreachable and paths-filter silently falls back to "no changes" — every job is skipped, the workflow reports "success", and **nothing ships**.
+A typical changed-files filter action (e.g. `dorny/paths-filter`) diffs `<before>..<head>` to detect changed files. If the checkout step uses its default `fetch-depth: 1`, the `before` SHA is unreachable and the filter silently falls back to "no changes" — every job is skipped, the workflow reports "success", and **nothing ships**.
+
+This is a real failure mode: a project's release-cut once silently no-op'd because a large multi-commit jump from a shallow clone made the base SHA unreachable, so the paths-filter saw zero changes and skipped every deploy job while reporting success.
 
 Two defenses:
 
-1. **`actions/checkout@v4` with `fetch-depth: 0`** on every job that uses `dorny/paths-filter`. Defended by the strict-zero ratchet `no-paths-filter-without-fetch-depth-zero` (chorz quick 260602-fpd lesson — caught at release-cut time when a 93-commit jump silently no-op'd).
+1. **Checkout with `fetch-depth: 0`** on every job that uses a paths-filter action. Defended by the strict-zero ratchet `no-paths-filter-without-fetch-depth-zero`, which fails any workflow whose paths-filter job lacks a full-history checkout.
 2. **`workflow_dispatch:` + `always_deploy: true`** on the prod workflow for cumulative-state release cuts (see [11-staging-prod-environments.md](11-staging-prod-environments.md)).
 
 ---
 
 ## 7. The drift gate
 
-`src/__tests__/ci-local-mirrors-workflow.test.ts` — parses `scripts/ci-local.sh`'s `STEPS=(...)` array AND `.github/workflows/test-coverage.yml`'s job/step names, then asserts every local step has a CI mirror with matching name. Fails fast when CI grows a step the local script doesn't have (or vice versa).
+`ci-local-mirrors-workflow.test.ts` — parses `scripts/ci-local.sh`'s `STEPS=(...)` array AND `.github/workflows/test-coverage.yml`'s job/step names, then asserts every local step has a CI mirror with matching name. Fails fast when CI grows a step the local script doesn't have (or vice versa).
 
 This is the load-bearing invariant — without it, "local mirrors CI" decays over months as one side or the other accumulates steps.
 
@@ -124,23 +125,15 @@ A failing test means fix the test before deploying. Mandate 3 of the testing-cad
 
 ## 9. Adopting this playbook
 
-- [ ] `scripts/ci-local.sh` skeleton in place (template at `templates/scripts/ci-local.sh`).
+- [ ] `scripts/ci-local.sh` skeleton in place (mirrors every CI step locally).
 - [ ] `.githooks/pre-commit` + `pre-push` from templates; `postinstall` script wires `core.hooksPath`.
 - [ ] `ci-local-mirrors-workflow.test.ts` ratchet wired in pre-commit list.
 - [ ] `npm run check:coverage` defined in `package.json` with direct-binary-path invocation.
 - [ ] `.github/workflows/test-coverage.yml` mirrors the local script step-for-step.
-- [ ] `paths-filter` callers use `actions/checkout@v4` with `fetch-depth: 0`.
+- [ ] `paths-filter` callers use a full-history checkout (`fetch-depth: 0`).
 - [ ] `scripts/post-local-ci-status.cjs` wired into pre-push for quota-cliff days.
-- [ ] User-memory rule `feedback_no_verify_during_gha_outage` loaded.
+- [ ] An operational rule forbidding `--no-verify` pushes while CI is offline is in place.
 
 ---
 
-## Reference reading
-
-- `chorz/scripts/ci-local.sh` — full local mirror (canonical implementation)
-- `chorz/.githooks/pre-commit` + `chorz/.githooks/pre-push` — POSIX bash, readable in-repo
-- `chorz/.github/workflows/test-coverage.yml` — CI workflow mirroring the local script
-- `chorz/src/__tests__/ci-local-mirrors-workflow.test.ts` — drift gate
-- `chorz/scripts/post-local-ci-status.cjs` — GHA-down fallback
-- `chorz/src/__tests__/no-paths-filter-without-fetch-depth-zero.test.ts` — shallow-clone trap defender
-- `chorz/CLAUDE.md § Operational rules while GHA is offline` — narrative of the recurring quota-cliff incident class
+**Last updated:** 2026-06-21

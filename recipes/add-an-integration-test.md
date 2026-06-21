@@ -45,15 +45,15 @@ describe('myFeature — Tier 2 emulator integration', () => {
 
   it('does the thing under realistic state', async () => {
     // Arrange — read the seeded fixture you care about
-    const before = await getFirestore().doc('households/perm-recurring/chores/c-1').get();
+    const before = await getFirestore().doc('tenants/seed-basic/items/i-1').get();
 
     // Act — invoke the CF via the production wrapper (or callable directly)
     const fn = httpsCallable(getFunctions(/* connected to emulator */), 'myFeature');
-    const { data } = await fn({ choreId: 'c-1' });
+    const { data } = await fn({ itemId: 'i-1' });
 
     // Assert — wire shape + Firestore side effects + audit doc presence
     expect(data).toMatchObject({ success: true });
-    const after = await getFirestore().doc('households/perm-recurring/chores/c-1').get();
+    const after = await getFirestore().doc('tenants/seed-basic/items/i-1').get();
     expect(after.data()).toMatchObject({ /* expected delta */ });
     const audit = await getFirestore().collection('audit').where('action', '==', 'MY_FEATURE_DID_THE_THING').limit(1).get();
     expect(audit.size).toBe(1);

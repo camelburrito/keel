@@ -1,36 +1,36 @@
 # Playbook Index
 
-The keel playbook is a set of methodology docs that capture the WHY and the structural assertions a new project must satisfy. Each entry points back to the canonical reference implementation in `camelburrito/chorz` (and any other reference project) by file path.
+The keel playbook is a set of methodology docs that capture the WHY, the structural assertions a new project must satisfy, and the generic, portable shape of each pattern. This index, the playbook framing, and the per-doc bodies are all app-agnostic and self-contained — no app-specific file paths (only generic conventions like `functions/src/`).
 
-A new entry is added every time a reference project ships a significant new architecture (notifications, Android, payments, etc.). The `playbook-coverage-on-new-architecture` ratchet on the reference project (live in `chorz/src/__tests__/playbook-coverage-on-new-architecture.test.ts`) enforces same-PR coverage — adding `docs/architecture/<new>.md` without a matching keel playbook entry trips the gate.
+A new entry is added every time a consuming project ships a significant new architecture (notifications, Android, payments, etc.) and generalizes it back here. A consuming project's `playbook-coverage-on-new-architecture` ratchet enforces same-PR coverage on its side — adding `docs/architecture/<new>.md` there without a matching keel playbook entry trips the gate.
 
 ## Status legend
 
 - 🟢 **drafted** — content is real and load-bearing
 - 🟡 **outlined** — section structure exists, content TODO
-- ⚪ **stub** — placeholder only, written when chorz ships the corresponding system
+- ⚪ **stub** — placeholder only, written when a consuming project ships the corresponding system
 
 ## Entries
 
-| #  | Topic | Status | Reference impl |
-|----|-------|--------|----------------|
-| 01 | [GSD workflow](01-gsd-workflow.md) | 🟢 drafted | `chorz/.planning/` + `docs/GSD_PLAN.md` + `docs/ACTIVE_TASKS.md` |
-| 02 | [Design system](02-design-system.md) | 🟢 drafted | `chorz/CLAUDE.md § Design System Governance`, `chorz/src/ui/`, `chorz/shared/tokens/tokens.json` |
-| 03 | [CI/CD philosophy](03-ci-cd.md) | 🟢 drafted | `chorz/scripts/ci-local.sh`, `chorz/.githooks/`, `chorz/.github/workflows/test-coverage.yml` |
-| 04 | [Architecture docs convention](04-architecture-docs.md) | 🟢 drafted | `chorz/docs/architecture/`, `chorz/.claude/hooks/architecture-doc-drift.sh` |
-| 05 | [Observability & PII handling](05-observability-pii.md) | 🟢 drafted (pilot full entry, 2026-06-04) | `chorz/docs/architecture/pii-handling.md`, `chorz/shared-cf-utils/src/utils/logger.ts`, `chorz/scripts/audit-cloud-logging-pii.mjs` |
-| 06 | [Testing cadence](06-testing-cadence.md) | 🟢 drafted | `chorz/docs/architecture/testing.md`, `chorz/functions/src/__tests__-integration/helpers/seedPermutations.ts` |
-| 07 | [Ratchet framework](07-ratchet-framework.md) | 🟢 drafted | `chorz/src/__tests__/_ratchetHelpers.ts`, `chorz/src/__tests__/no-*.test.ts` |
-| 08 | [String catalog & i18n](08-string-catalog-i18n.md) | 🟢 drafted | `chorz/docs/architecture/design-system-architecture.md § 3.5`, `chorz/scripts/gen-strings.mjs` |
-| 09 | [Firebase stack](09-firebase-stack.md) | 🟢 drafted | `chorz/docs/architecture/cloud-functions.md`, `chorz/firebase.json`, `chorz/firestore.rules` |
-| 10 | [Screenshot workflow](10-screenshot-workflow.md) | 🟢 drafted | `chorz/.claude/skills/pr-ui-screenshots`, `camelburrito/chorz-screenshots` |
-| 11 | [Staging & prod environments](11-staging-prod-environments.md) | 🟢 drafted | `chorz/.github/workflows/_deploy.yml`, `chorz/.env.*`, `chorz/scripts/verify-deploy-shape.sh` |
-| 12 | [Notifications](12-notifications.md) | 🟢 drafted | `chorz/docs/architecture/notifications.md`, `chorz/shared-cf-utils/src/notifications/`, `chorz/functions-calendar/src/notifications/`, `chorz/apple/Chorz/ChorzWidgets/` |
-| 13 | [System architecture & scale](13-system-architecture-and-scale.md) | 🟡 outlined | `chorz/docs/architecture/system-overview.md`, `chorz/firebase.json`, `chorz/firestore.rules` |
+| #  | Topic | Status |
+|----|-------|--------|
+| 01 | [GSD workflow](01-gsd-workflow.md) | 🟢 drafted |
+| 02 | [Design system](02-design-system.md) | 🟢 drafted |
+| 03 | [CI/CD philosophy](03-ci-cd.md) | 🟢 drafted |
+| 04 | [Architecture docs convention](04-architecture-docs.md) | 🟢 drafted |
+| 05 | [Observability & PII handling](05-observability-pii.md) | 🟢 drafted (pilot full entry, 2026-06-04) |
+| 06 | [Testing cadence](06-testing-cadence.md) | 🟢 drafted |
+| 07 | [Ratchet framework](07-ratchet-framework.md) | 🟢 drafted |
+| 08 | [String catalog & i18n](08-string-catalog-i18n.md) | 🟢 drafted |
+| 09 | [Firebase stack](09-firebase-stack.md) | 🟢 drafted |
+| 10 | [Screenshot workflow](10-screenshot-workflow.md) | 🟢 drafted |
+| 11 | [Staging & prod environments](11-staging-prod-environments.md) | 🟢 drafted |
+| 12 | [Notifications](12-notifications.md) | 🟢 drafted |
+| 13 | [System architecture & scale](13-system-architecture-and-scale.md) | 🟡 outlined |
 
 ## Future entries (placeholders)
 
-Add a new row above the line and a new file when these ship in any reference project:
+Add a new row above the line and a new file when these ship in any consuming project:
 
 - ⚪ Android client (cross-platform parity with iOS via shared core package)
 - ⚪ Payments (Stripe / RevenueCat patterns + reconciliation)
@@ -40,3 +40,7 @@ Add a new row above the line and a new file when these ship in any reference pro
 ## How to draft an entry
 
 Every playbook entry follows the same shape. See [recipes/add-a-playbook-entry.md](../../recipes/add-a-playbook-entry.md) for the template.
+
+---
+
+**Last updated:** 2026-06-21

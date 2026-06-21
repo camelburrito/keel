@@ -1,7 +1,6 @@
 # 12 — Notifications (in-app feed + push + widgets)
 
 **Status:** 🟢 drafted
-**Reference impl:** `chorz/docs/architecture/notifications.md`, `chorz/shared-cf-utils/src/notifications/`, `chorz/functions-calendar/src/notifications/`, `chorz/firestore.indexes.json`, `chorz/firestore.rules`, `chorz/packages/ChorzCore/Sources/ChorzCoreMessaging/`, `chorz/apple/Chorz/ChorzWidgets/`
 
 ---
 
@@ -60,7 +59,7 @@ The feed adapter is registered **first**, and two guarantees fall out of that pl
 
 This is the at-least-once-feed / at-most-once-push split. The feed is reliable; the push is a courtesy. The frozen registry is not cosmetic: register the push adapter first and you've inverted the guarantee.
 
-> **Reference impl:** chorz's `dispatchNotification` composer over `[FirestoreFeedDispatcher, FcmDispatcher]` in `shared-cf-utils/src/notifications/`.
+> **Concretely:** a `dispatchNotification` composer over a frozen `[FirestoreFeedDispatcher, FcmDispatcher]` registry, living in the CF utils package (e.g. `packages/cf-utils/src/notifications/`).
 
 ---
 
@@ -186,7 +185,7 @@ The `token.tenantId == tid` conjunct denies cross-tenant reads **even if a calle
 
 ### The opt-in gate
 
-A single `Member.optIn?: boolean` with **opt-OUT semantics**: only an explicit `false` suppresses; `undefined`/`true` both mean deliver. Enforce it **server-side inside the push adapter** — skip any recipient whose member doc reads `optIn === false`, *before* any token read — so a member who opts out on one platform is silenced everywhere, including the widget cache (which writes an empty array when opted out). When a recipient resolves to **no tokens** (opted out, no identity link, or no usable tokens), emit a **structured skip log** (`recipient-skipped`) so the silent-skip case is observable — this is the observability that makes the incident in § 7 diagnosable.
+A single `member.optIn?: boolean` field with **opt-OUT semantics**: only an explicit `false` suppresses; `undefined`/`true` both mean deliver. Enforce it **server-side inside the push adapter** — skip any recipient whose member doc reads `optIn === false`, *before* any token read — so a member who opts out on one platform is silenced everywhere, including the widget cache (which writes an empty array when opted out). When a recipient resolves to **no tokens** (opted out, no identity link, or no usable tokens), emit a **structured skip log** (`recipient-skipped`) so the silent-skip case is observable — this is the observability that makes the incident in § 7 diagnosable.
 
 ---
 
@@ -340,22 +339,28 @@ Checklist for a fresh project. Most of the shape ships in the templates; this en
 
 ---
 
-## Reference reading
+## Where the pieces live in a keel-derived project
 
-- `chorz/docs/architecture/notifications.md` — the canonical write-up incl. the § 8 scale analysis and the production incident notes
-- `chorz/shared-cf-utils/src/notifications/` — the dispatch port/adapter + composer; the token read-shape fix (§ 7.1) + `fcm-recipient-skipped` log live in `FcmDispatcher`
-- `chorz/functions-calendar/src/notifications/` — the scheduled producers + reaper + stamp-before-dispatch
-- `chorz/scripts/backfill-overdue-notified.mjs` — the `== null` backfill incl. `--mark-notified` (§ 7.2)
-- `chorz/functions/src/users/registerFcmToken.ts` — per-device token registry upsert (write shape)
-- `chorz/firestore.indexes.json` + `chorz/firestore.rules` — the feed/scanner composite indexes + the two-arm read rule with the tenant conjunct
-- `chorz/apple/Chorz/Chorz/AppDelegate.swift` — the APNs→FCM bridge (explicit `apnsToken` set; the SwiftUI delegate-proxy swizzler gotcha; `willPresent` foreground handler)
-- `chorz/packages/ChorzCore/Sources/ChorzCoreMessaging/` — `reRegisterTokenAfterSignIn()`, the auth-edge re-register that closes the cold-launch race (§ 7.3)
-- `chorz/apple/Chorz/Chorz/Chorz.entitlements` — the `aps-environment` entitlement (§ 7.6)
-- `chorz/apple/Chorz/ChorzWidgets/` + `chorz/apple/Chorz/Chorz/Notifications/WidgetSharedCache.swift` — Architecture B (Lite duplicate, app-group cache, fallback timeline)
-- `chorz/shared/test-fixtures/notification-card/*.json` — the golden fixtures pinning the cross-platform card contract
+A typical layout once you've wired this up — names are illustrative, the shape is the point:
+
+- An architecture write-up (e.g. `docs/architecture/notifications.md`) — the canonical reference incl. the § 8 scale analysis and the production incident notes.
+- The CF utils package (`packages/cf-utils/src/notifications/`) — the dispatch port/adapter + composer; the token read-shape fix (§ 7.1) and the `recipient-skipped` structured log live in the push adapter.
+- The scheduled-producer CF codebase (`functions/.../notifications/`) — the scheduled producers + reaper + stamp-before-dispatch.
+- A backfill script — the `== null` backfill incl. a `--mark-notified` mode (§ 7.2).
+- The token-registration onCall — the per-device token registry upsert (write shape).
+- The Firestore index + rule files — the feed/scanner composite indexes + the two-arm read rule with the tenant conjunct.
+- The native app delegate (`apple/<App>/.../AppDelegate.swift`) — the APNs→FCM bridge (explicit APNs-token set; the SwiftUI delegate-proxy swizzler gotcha; the foreground present handler).
+- The core package's messaging module — the auth-edge re-register that closes the cold-launch race (§ 7.3).
+- The app entitlements file — the `aps-environment` entitlement (§ 7.6).
+- The widget extension target + the app-group cache writer — "Architecture B" (Lite duplicate, app-group cache, fallback timeline).
+- The notification-card golden fixtures — pinning the cross-platform card contract.
 
 ## Related playbook
 
 - [09-firebase-stack.md](./09-firebase-stack.md) — the CF/Firestore/rules substrate this rides on
 - [05-observability-pii.md](./05-observability-pii.md) — FCM tokens are a documented PII carve-out (transmitted to the vendor for delivery; redacted in logs)
 - [04-architecture-docs.md](./04-architecture-docs.md) — the arch-doc convention + the `playbook-coverage-on-new-architecture` ratchet that brought you here
+
+---
+
+**Last updated:** 2026-06-21

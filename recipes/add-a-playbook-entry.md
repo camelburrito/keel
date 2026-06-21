@@ -1,11 +1,11 @@
 # Recipe: Add a Playbook Entry
 
-When the reference project ships a significant new architecture (notifications, Android client, payments, multi-tenancy, etc.), the keel playbook gets a matching entry.
+When a consuming project ships a significant new architecture (notifications, Android client, payments, multi-tenancy, etc.), the keel playbook gets a matching app-agnostic entry.
 
 ## Trigger
 
-- A new `docs/architecture/<system>.md` lands in the reference project.
-- The `playbook-coverage-on-new-architecture` ratchet on the reference project trips, citing this missing keel entry.
+- A new `docs/architecture/<system>.md` lands in a consuming project.
+- The `playbook-coverage-on-new-architecture` ratchet on that consuming project trips, citing this missing keel entry.
 
 ## Steps
 
@@ -15,7 +15,7 @@ When the reference project ships a significant new architecture (notifications, 
    - Add a row to the main entries table.
    - Move the topic out of the "Future entries" placeholder list if it was there.
 4. Extract any genuinely agnostic helpers into `packages/cf-utils/`, `packages/ratchet-kit/`, or `scripts/` (whichever is the right home).
-5. Update the reference project's `.<reference-project>-playbook-index.json` (or equivalent snapshot) so the `playbook-coverage-on-new-architecture` ratchet sees the new entry.
+5. Update the consuming project's `.<app>-playbook-index.json` (or equivalent snapshot) so its `playbook-coverage-on-new-architecture` ratchet sees the new entry.
 6. Commit. Tag a keel release if the package surface changed.
 
 ## Template
@@ -24,7 +24,6 @@ When the reference project ships a significant new architecture (notifications, 
 # NN — Topic
 
 **Status:** 🟡 outlined
-**Reference impl:** `<reference-project>/<paths>`
 
 ## Why this exists
 
@@ -39,19 +38,20 @@ These are the load-bearing claims — what makes the pattern work vs. what's inc
 
 Outline the full draft. Each section becomes a real subsection later.
 
-## Reference reading
+## The portable shape
 
-- `<reference-project>/<path>` — what it shows
-- `<reference-project>/<path>` — what it shows
+The generic structure, snippets, or assertions a new project implements — no
+app-specific paths. (If you must cite a real implementation, do it in the
+consuming project's own arch doc, not here.)
 ```
 
 ## When the playbook entry is "real" vs "stub"
 
-A 🟡 outlined stub is fine when the system has only shipped in one reference project and the patterns are still hardening. Promote to 🟢 drafted when:
-- Two or more reference projects use the pattern.
+A 🟡 outlined stub is fine when the system has only shipped in one consuming project and the patterns are still hardening. Promote to 🟢 drafted when:
+- Two or more consuming projects use the pattern.
 - The structural assertions have survived a real reorganization without breaking.
 - Someone other than the original author has consumed the playbook entry to start a new project successfully.
 
 ## Related playbook
 
-- [04-architecture-docs.md](../docs/playbook/04-architecture-docs.md) — the matching arch-doc-convention on the reference project side
+- [04-architecture-docs.md](../docs/playbook/04-architecture-docs.md) — the matching arch-doc-convention on the consuming-project side

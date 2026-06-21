@@ -1,7 +1,6 @@
 # 09 — Firebase Stack
 
 **Status:** 🟢 drafted
-**Reference impl:** `chorz/docs/architecture/cloud-functions.md`, `chorz/docs/architecture/data-model.md`, `chorz/docs/architecture/audit-trail.md`, `chorz/firebase.json`, `chorz/firestore.rules`, `chorz/shared-cf-utils/`
 
 ---
 
@@ -9,7 +8,7 @@
 
 Firebase is the default backend stack for keel-derived projects: Auth (multi-provider OAuth + anonymous + custom-token), Firestore (real-time sync + per-document audit), Cloud Functions (split codebases for cold-start budget control), FCM (notifications). The patterns that earn their keep across products:
 
-- **Codebase split** for cold-start budget isolation — heavy SDKs (googleapis, openai) blow cold-start times if mixed with default app-domain CFs. Defended by `no-<heavy-sdk>-in-default-codebase` ratchets.
+- **Codebase split** for cold-start budget isolation — heavy SDKs (e.g., a cloud-API client, an LLM SDK) blow cold-start times if mixed with default app-domain CFs. Defended by `no-<heavy-sdk>-in-default-codebase` ratchets.
 - **Deny-all-then-allowlist** Firestore rules — every collection deny-by-default; allowlist per-collection with corresponding rule-test coverage.
 - **`writeWithAudit` atomic mutations** — every mutation that touches an audited doc type lands the audit record in the same transaction (D-01 invariant).
 - **Cross-codebase coordination via Firestore field signals only** — never `httpsCallable` from one codebase to another. Defended by `no-cross-codebase-https-call`.
@@ -24,7 +23,7 @@ Firebase is the default backend stack for keel-derived projects: Auth (multi-pro
 - `firestore.indexes.json` carries an entry for every `collectionGroup()` query call site AND every `fieldOverride` that disables COLLECTION-scope keeps a matching COLLECTION-scope auto-index entry alongside.
 - `@camelburrito/cf-utils` workspace package providing: `writeWithAudit` / `writeWithAuditBatch`, `checkRateLimit`, `claimIdempotency`, `validateString` / `validateEmail` / `validateUrl`, `logger` (see [05-observability-pii.md](05-observability-pii.md)), `wrapHandler` Proxy.
 - Cross-codebase coordination via **Firestore field signals only**. Defended by `no-cross-codebase-https-call`.
-- Heavy SDKs (`googleapis`, etc.) in **one codebase only**. Defended by `no-<sdk>-in-default-codebase`.
+- Heavy SDKs (a cloud-API client, an LLM SDK, etc.) in **one codebase only**. Defended by `no-<sdk>-in-default-codebase`.
 - Every onCall handler carries `{ invoker: 'public' }` (defended by `no-oncall-without-explicit-invoker` — required since firebase-tools 15.11.0 silently skips the IAM CREATE auto-grant).
 - Every onCall handler calls `checkRateLimit` (defended by `arch-doc-cf-claims` parser).
 - Every onCall handler has a contract fixture pair (defended by `no-cf-without-contract-fixture`).
@@ -34,19 +33,19 @@ Firebase is the default backend stack for keel-derived projects: Auth (multi-pro
 
 ## 2. Codebase split philosophy
 
-**Why split.** Cloud Functions cold-start time scales with bundle size + dependency tree depth. `googleapis` alone adds ~500ms to cold start. If you mix `googleapis`-using CFs with your default app-domain CFs in one codebase, every cold start for the default codebase pays the `googleapis` tax — and 90% of your CFs don't need it.
+**Why split.** Cloud Functions cold-start time scales with bundle size + dependency tree depth. A heavy SDK (e.g., a cloud-API client) can add hundreds of milliseconds to cold start. If you mix heavy-SDK-using CFs with your default app-domain CFs in one codebase, every cold start for the default codebase pays the SDK tax — and the large majority of your CFs don't need it.
 
-**The split:**
-- `functions/` — default codebase. App-domain CFs (auth, chores, members, household, users, FCM token registration, audit, testing). NO heavy SDKs.
-- `functions-<external>/` — per-external-system codebase (e.g., `functions-calendar/` for googleapis-using CFs). One codebase per heavy SDK domain.
+**The split** is a multi-codebase split (e.g., a default codebase + a heavier secondary codebase isolating a big dependency):
+- `functions/` — default codebase. App-domain CFs (auth, core entities, users, FCM token registration, audit, testing). NO heavy SDKs.
+- `functions-<external>/` — per-external-system codebase (one per heavy SDK domain) holding only the CFs that need that dependency. One codebase per heavy SDK domain.
 
-Chorz Phase 1065 split the megabundle when `googleapis` was retrofitted into a few CFs and the default codebase's cold-start budget cap hit. The split landed alongside two new strict-zero ratchets (`no-googleapis-in-default-codebase` defending the SDK boundary, `no-cross-codebase-https-call` defending the coordination boundary).
+A real-world trigger for the split: an external-API SDK gets retrofitted into a handful of CFs, the default codebase's cold-start budget cap is hit, and the megabundle is split so the SDK tax is paid only by the CFs that need it (in one case a cold-start regression forced a per-codebase memory-cap bump). The split lands alongside two strict-zero ratchets — `no-<sdk>-in-default-codebase` defending the SDK boundary, and `no-cross-codebase-https-call` defending the coordination boundary.
 
 **Deploy commands:**
 ```bash
-firebase deploy --only functions --project <APP>-staging              # both codebases
-firebase deploy --only functions:default --project <APP>-prod         # default only
-firebase deploy --only functions:calendar --project <APP>-staging     # calendar only
+firebase deploy --only functions --project <APP>-staging               # all codebases
+firebase deploy --only functions:default --project <APP>-prod          # default only
+firebase deploy --only functions:<external> --project <APP>-staging     # secondary only
 ```
 
 ---
@@ -61,31 +60,31 @@ The forbidden pattern: codebase A calls codebase B's CF via `httpsCallable`. Rea
 The required pattern: codebase A writes a signal field to Firestore; B's Firestore trigger picks up the signal asynchronously.
 
 ```ts
-// shared-cf-utils/src/signals/SCHEDULING_SIGNALS.ts (typed registry)
-export const SCHEDULING_SIGNALS = {
-  CHORE_NEEDS_SCHEDULING_SYNC: 'scheduling.needsSyncTrigger',
-  CHORE_SCHEDULING_DELETED: 'scheduling.deletedTrigger',
+// packages/cf-utils/src/signals/EXTERNAL_SYNC_SIGNALS.ts (typed registry)
+export const EXTERNAL_SYNC_SIGNALS = {
+  ENTITY_NEEDS_SYNC: 'sync.needsSyncTrigger',
+  ENTITY_SYNC_DELETED: 'sync.deletedTrigger',
 } as const;
 
-// functions/src/chores/markChoreDone.ts (default codebase)
-await db.doc(`households/${hid}/chores/${cid}`).update({
+// functions/src/entities/markEntityComplete.ts (default codebase)
+await db.doc(`accounts/${aid}/entities/${eid}`).update({
   status: 'done',
   completedAt: serverTimestamp(),
-  [SCHEDULING_SIGNALS.CHORE_NEEDS_SCHEDULING_SYNC]: serverTimestamp(),
+  [EXTERNAL_SYNC_SIGNALS.ENTITY_NEEDS_SYNC]: serverTimestamp(),
 });
 
-// functions-calendar/src/scheduling/onChoreSchedulingSync.ts (calendar codebase)
-export const onChoreSchedulingSync = onDocumentUpdated(
-  'households/{hid}/chores/{cid}',
+// functions-<external>/src/sync/onEntitySync.ts (secondary codebase)
+export const onEntitySync = onDocumentUpdated(
+  'accounts/{aid}/entities/{eid}',
   async (event) => {
     const after = event.data?.after.data();
-    if (!after?.[SCHEDULING_SIGNALS.CHORE_NEEDS_SCHEDULING_SYNC]) return;
-    // do the calendar work; clear the signal at end
+    if (!after?.[EXTERNAL_SYNC_SIGNALS.ENTITY_NEEDS_SYNC]) return;
+    // do the external work; clear the signal at end
   }
 );
 ```
 
-The typed registry (`SCHEDULING_SIGNALS`) makes the signal vocabulary explicit. Adding a new signal: add to the registry, then producer and consumer reference the same constant.
+The typed registry (`EXTERNAL_SYNC_SIGNALS`) makes the signal vocabulary explicit. Adding a new signal: add to the registry, then producer and consumer reference the same constant.
 
 Defended by `no-cross-codebase-https-call` strict-zero ratchet (scans every codebase's source for `httpsCallable(<otherCodebaseCf>)` patterns and fails).
 
@@ -103,9 +102,9 @@ await writeWithAudit({
     txn.update(refs.target, { status: 'done', completedAt: serverTimestamp() });
   },
   audit: {
-    action: AUDIT_ACTIONS.CHORE_MARKED_DONE,
+    action: AUDIT_ACTIONS.ENTITY_MARKED_DONE,
     actor: { uid, displayName },
-    target: { collection: 'chores', id: choreId, householdId },
+    target: { collection: 'entities', id: entityId, accountId },
     before: { status: 'pending' },
     after: { status: 'done' },
   },
@@ -116,7 +115,7 @@ The transaction ensures the mutation + audit doc both land OR both fail. No half
 
 **The discipline:** every audited-doc-type mutation routes through this helper. Direct `db.doc().update()` on an audited doc fails the `no-audit-bypass-in-functions` ratchet. The ratchet scans source for `txn.set/update/delete` or `batch.set/update/delete` on lines that also reference audited doc refs.
 
-Audited doc types are project-specific; chorz audits ~14 types (chores, members, households, users, slots, invites, creds, etc.). Each new audited type needs a registry entry + ratchet awareness.
+Audited doc types are project-specific; a typical app audits a dozen-plus types (core entities, members, accounts, users, invites, credentials, etc.). Each new audited type needs a registry entry + ratchet awareness.
 
 ---
 
@@ -134,8 +133,8 @@ service cloud.firestore {
       allow write: if false; // writes via CF only
     }
 
-    match /households/{hid}/members/{mid} {
-      allow read: if hasHouseholdAccess(hid);
+    match /accounts/{aid}/members/{mid} {
+      allow read: if hasAccountAccess(aid);
       allow write: if false;
     }
 
@@ -163,7 +162,7 @@ Firestore auto-creates single-field indexes at COLLECTION scope by default. Two 
 
 **Class A — `collectionGroup` queries** need explicit COLLECTION_GROUP index entries. `db.collectionGroup('credentials').where('email', '==', x)` requires a `collectionGroup`-scoped index for `credentials.email`. Otherwise the query throws `9 FAILED_PRECONDITION` in production (the emulator silently allows ad-hoc indexes, hiding the gap).
 
-**Class B — `fieldOverride` that disables COLLECTION-scope auto-index** removes the implicit single-field index. If you declare a fieldOverride at COLLECTION_GROUP-only scope, the COLLECTION-scope auto-index for that field IS NO LONGER GENERATED, breaking any `.collection(...).where(field, op, x)` chain. Chorz quick 260518-trz lesson: `pendingInvites.email` fieldOverride at COLLECTION_GROUP only broke the `setHouseholdId` legacy-migration State-2 branch in prod.
+**Class B — `fieldOverride` that disables COLLECTION-scope auto-index** removes the implicit single-field index. If you declare a fieldOverride at COLLECTION_GROUP-only scope, the COLLECTION-scope auto-index for that field IS NO LONGER GENERATED, breaking any `.collection(...).where(field, op, x)` chain. War story: a `pendingInvites.email` fieldOverride declared at COLLECTION_GROUP scope only silently removed the COLLECTION-scope auto-index, breaking a `.where('email', ...)` query in a migration branch in prod — green in every local test, `9 FAILED_PRECONDITION` only against real Firestore.
 
 **The strict-zero ratchet `no-unindexed-collectiongroup-query`** (originally Class A, widened to also cover Class B) parses `firestore.indexes.json` AND scans both CF codebases for `.collectionGroup(NAME)` calls + `.collection(PATH).where(FIELD, OP, ...)` chains, then asserts every call site has a matching index entry. Strict-zero from day 1.
 
@@ -254,17 +253,18 @@ Server-generated URLs (e.g., signed URLs written by upload triggers) bypass vali
 
 ## Reference reading
 
-- `chorz/docs/architecture/cloud-functions.md` — full architecture doc (codebase split, rate limit table, signals registry)
-- `chorz/docs/architecture/data-model.md` — schema + collection inventory
-- `chorz/docs/architecture/audit-trail.md` — D-01 atomic-write pattern + audit-action catalog
-- `chorz/shared-cf-utils/` — workspace package (the agnostic primitives `@camelburrito/cf-utils` extracts from)
-- `chorz/functions/src/index.ts` + `chorz/functions-calendar/src/index.ts` — split codebases
-- `chorz/firestore.rules` + `chorz/firestore.indexes.json` + `chorz/functions/src/rules/firestore.rules.test.ts` — deny-all + per-collection allowlist + paired tests
-- `chorz/src/__tests__/no-googleapis-in-default-codebase.test.ts` + `chorz/src/__tests__/no-cross-codebase-https-call.test.ts` — codebase split defenders
-- `chorz/src/__tests__/no-unindexed-collectiongroup-query.test.ts` — index discipline defender (Class A + Class B)
-- `chorz/src/__tests__/no-audit-bypass-in-functions.test.ts` — audit-trail defender
-- `chorz/src/__tests__/no-oncall-without-explicit-invoker.test.ts` — IAM CREATE defender
-- `chorz/src/__tests__/arch-doc-cf-claims.test.ts` — value-parser for CF count + rate-limit claims
-- `chorz/functions/src/utils/validation.ts` — validateString/Email/Url primitives
+- `@camelburrito/cf-utils` — workspace package providing `writeWithAudit` / `writeWithAuditBatch`, `checkRateLimit`, `claimIdempotency`, `validateString` / `validateEmail` / `validateUrl`, `logger`, `wrapHandler`
+- `firebase.json` — declares each codebase as a separate `functions[]` entry
+- `firestore.rules` + `firestore.indexes.json` + `firestore.rules.test.ts` — deny-all + per-collection allowlist + paired tests + index entries
+- `functions/src/index.ts` + `functions-<external>/src/index.ts` — the split codebases
+- `no-<sdk>-in-default-codebase` + `no-cross-codebase-https-call` ratchets — codebase split defenders
+- `no-unindexed-collectiongroup-query` ratchet — index discipline defender (Class A + Class B)
+- `no-audit-bypass-in-functions` ratchet — audit-trail defender
+- `no-oncall-without-explicit-invoker` ratchet — IAM CREATE defender
+- `arch-doc-cf-claims` ratchet — value-parser for CF count + rate-limit claims
 - Recipe: [recipes/add-a-cloud-function.md](../../recipes/add-a-cloud-function.md)
 - Recipe: [recipes/add-an-integration-test.md](../../recipes/add-an-integration-test.md)
+
+---
+
+**Last updated:** 2026-06-21

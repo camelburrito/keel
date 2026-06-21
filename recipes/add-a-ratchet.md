@@ -6,8 +6,8 @@ A ratchet locks an invariant: a bug class you fixed once should never return.
 
 You just fixed a bug class. Ask: *Could this same shape of bug come back later by accident?* If yes, write a ratchet.
 
-Examples that earned ratchets in chorz:
-- A CF wrote `status: 'done'` without `completedAt` (3/12 staging chores broken). → `no-done-without-completedat-in-functions`
+Examples that earned ratchets in production:
+- A CF wrote `status: 'done'` without `completedAt` (3/12 staging records broken). → `no-done-without-completedat-in-functions`
 - Bare `console.log` bypassed Sentry's PII redact. → `no-console-in-source`
 - A `paths-filter` GHA job silently no-op'd a 93-commit release cut. → `no-paths-filter-without-fetch-depth-zero`
 
@@ -73,7 +73,7 @@ If you can't drain to zero today, use a deferral baseline:
 const WEB_DEFERRED: Record<string, { count: number; rationale: string }> = {
   'src/legacy/OldComponent.tsx': {
     count: 3,
-    rationale: 'pre-Phase-1078 migration baseline; drain in Phase 1080',
+    rationale: 'legacy migration baseline; drain in a follow-up',
   },
 };
 ```

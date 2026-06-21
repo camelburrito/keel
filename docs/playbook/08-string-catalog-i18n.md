@@ -1,7 +1,6 @@
 # 08 — String Catalog & i18n
 
 **Status:** 🟢 drafted
-**Reference impl:** `chorz/shared/strings/catalogs/`, `chorz/scripts/gen-strings.mjs`, `chorz/docs/architecture/design-system-architecture.md § 3.5`, `chorz/packages/ChorzUI/Sources/ChorzUI/Environment/LocaleEnvironment.swift`
 
 ---
 
@@ -12,9 +11,9 @@ User-facing strings in source rot fast: inconsistent casing, missed translations
 - **Localizable surfaces from day 1** — even when you only ship English, the infrastructure for the second locale is already there.
 - **A single place to review wording** — copy editor reviews one JSON file, not 200 .tsx files.
 - **Structural defense against new bare-literal regressions** — `no-bare-user-facing-string-in-features` strict-zero ratchet.
-- **A clean cross-platform shape** — same catalog, three codegen outputs (web TS, Swift, CF-side TS), same `t()` semantics.
+- **A clean cross-platform shape** — same catalog, three codegen outputs (web TS, Swift, server-side TS), same `t()` semantics.
 
-Multi-locale BCP-47 with a documented resolver chain (`Member.locale → Household.locale → device → en-US`) handles per-user overrides cleanly. Don't put locale in URL params or cookies; put it on user/household docs.
+Multi-locale BCP-47 with a documented resolver chain (**per-user setting → group/scope-level default → device/browser locale → hard-coded fallback** such as `en-US`) handles per-user overrides cleanly. Don't put locale in URL params or cookies; put it on the user/group documents that already model identity and tenancy.
 
 ---
 
@@ -23,13 +22,13 @@ Multi-locale BCP-47 with a documented resolver chain (`Member.locale → Househo
 - `shared/strings/catalogs/<locale>.json` — source of truth per locale (start with `en-US`; add others as the product needs them).
 - A `t()` helper per platform, consuming a per-platform generated file:
   - Web TS: `src/lib/strings/strings.generated.ts`
-  - iOS Swift: `packages/<Core>UI/Sources/<Core>UI/Generated/LocalizedStrings.generated.swift`
-  - CF-side TS: `shared-cf-utils/src/generated/strings.generated.ts`
+  - iOS Swift: `packages/<App>UI/Sources/<App>UI/Generated/LocalizedStrings.generated.swift`
+  - Server-side TS: `<server-utils>/src/generated/strings.generated.ts`
 - Codegen runner `scripts/gen-strings.mjs` emits all three from the catalog; `npm run strings:gen` regenerates, `npm run strings:check` verifies in sync.
-- Locale resolver chain (4-tier): Member → Household → device → `en-US` fallback.
-- Strict-zero ratchet `no-bare-user-facing-string-in-features` defends `src/{features,pages,components}/` (web) AND `apple/<App>/<App>/**/*.swift` + `packages/<Core>UI/**/*.swift` (iOS).
+- Locale resolver chain (4-tier): per-user setting → group/scope-level default → device/browser locale → `en-US` fallback.
+- Strict-zero ratchet `no-bare-user-facing-string-in-features` defends `src/{features,pages,components}/` (web) AND the app's Swift feature views + the UI package's Swift sources (iOS).
 - BRAND_STRINGS allowlist (project name, integration names like `Google` / `Apple` / `Firebase`) bypasses the ratchet.
-- All onCall CF wire codes route through `errors.<code>` catalog keys via `cfErrorHandler.ts` → `t()`.
+- All server-callable wire codes route through `errors.<code>` catalog keys via the client error handler → `t()`.
 
 ---
 
@@ -48,22 +47,22 @@ Multi-locale BCP-47 with a documented resolver chain (`Member.locale → Househo
     "loading": "Loading…"
   },
   "errors": {
-    "_comment": "CF wire codes route through these keys via cfErrorHandler.",
+    "_comment": "Server wire codes route through these keys via the client error handler.",
     "generic": "Something went wrong. Please try again.",
     "network": "Network problem. Check your connection.",
     "invalid-argument": "That doesn't look right. Please check and try again.",
     "unauthorized": "You don't have permission to do that."
   },
   "features": {
-    "chores": {
-      "createCta": "Add chore",
-      "emptyState": "No chores yet."
+    "items": {
+      "createCta": "Add item",
+      "emptyState": "No items yet."
     }
   }
 }
 ```
 
-Nested namespaces by feature/surface. Flat-namespace would explode at scale; the chorz catalog has 524 keys per locale (as of Phase 1078) across ~40 namespaces.
+Nested namespaces by feature/surface. Flat-namespace would explode at scale; a mature catalog runs into the hundreds of keys per locale across dozens of namespaces.
 
 Brand strings (`<APP>` placeholder for your app name, `Google` / `Apple` / `Firebase` / `iOS` for integrations) are values in the catalog AND members of the BRAND_STRINGS allowlist that bypasses the bare-literal ratchet. Both routes are necessary: the catalog because translators copy verbatim; the allowlist because the bare-literal ratchet would otherwise flag any `<App>` reference in source as needing `t()`.
 
@@ -77,9 +76,9 @@ shared/strings/catalogs/en-US.json
                     ▼  scripts/gen-strings.mjs
          ┌──────────┼──────────────┐
          ▼          ▼              ▼
-    web TS       iOS Swift     CF-side TS
-src/lib/strings/  packages/<Core>UI/  shared-cf-utils/src/
-strings.gen.ts    .../LocalizedStrings.  generated/
+    web TS       iOS Swift     server-side TS
+src/lib/strings/  packages/<App>UI/  <server-utils>/src/
+strings.generated.ts  .../LocalizedStrings.  generated/
                   generated.swift       strings.generated.ts
 ```
 
@@ -95,18 +94,19 @@ Each generated file carries an `AUTOGENERATED by scripts/gen-strings.mjs from sh
 import { t } from '@/lib/strings/t';
 
 t('common.save');                                  // "Save" (en-US fallback)
-t('features.chores.createCta');                    // "Add chore"
+t('features.items.createCta');                     // "Add item"
 t('errors.invalid-argument', { locale: 'es-US' }); // "Eso no se ve bien…"
-t('greeting', { vars: { name: member.displayName } }); // interpolation
+t('greeting', { vars: { name: user.displayName } }); // interpolation
 ```
 
-Resolver chain (4-tier):
-1. **`Member.locale`** — per-user override. Set via `updateMemberLocale` CF.
-2. **`Household.locale`** — shared default for all household members. Set via `updateHouseholdLocale` CF (admin-only).
-3. **Device / browser locale** — auto-detected from `navigator.language` or iOS device settings.
-4. **`en-US`** — final fallback. NEVER missing.
+Resolver chain (4-tier), named by role rather than by domain entity:
 
-Per-user override wins over household default wins over device wins over fallback. Test the chain by setting only one layer at a time (Tier 2 emulator-integration tests cover this).
+1. **Per-user setting** — the locale override stored on the user's own record. Set via a self-scoped "update my locale" callable.
+2. **Group / scope-level default** — the shared default for everyone in the user's group or tenant. Set via an admin-scoped "update group locale" callable.
+3. **Device / browser locale** — auto-detected from `navigator.language` or the OS device settings.
+4. **`en-US`** — final hard-coded fallback. NEVER missing.
+
+Per-user setting wins over group default wins over device wins over fallback. Test the chain by setting only one layer at a time (emulator-integration tests cover this).
 
 ---
 
@@ -114,9 +114,9 @@ Per-user override wins over household default wins over device wins over fallbac
 
 `no-bare-user-facing-string-in-features` — strict-zero ratchet with count-tracked `WEB_DEFERRED` + `SWIFT_DEFERRED` migration baselines. Scans:
 
-- **Web:** `src/{features,pages,components}/**/*.{tsx,ts}` for JSX text nodes, JSX attributes (aria-label / placeholder / title / alt), and toast/alert/notify literal-arg calls. `createElement` short-form variants also caught (closes the `React.createElement('div', null, 'Hello')` bypass class — chorz PR #584 lesson).
-- **iOS:** `apple/<App>/<App>/**/*.swift` + `packages/<Core>UI/**/*.swift` for `Text("...")`, `.navigationTitle("...")`, `.accessibilityLabel("...")`, `.accessibilityHint("...")`, plus short-form variants (`Label`, `Button`, `.alert`, `.confirmationDialog`, `TextField`).
-- BRAND_STRINGS allowlist (12 entries in chorz: `CHORZ`, `Chorz`, `Google`, `Apple`, `iCloud`, `Firebase`, `iOS`, `Android`, `macOS`, `tvOS`, `iPhone`, `iPad`) bypasses via second-pass filter.
+- **Web:** `src/{features,pages,components}/**/*.{tsx,ts}` for JSX text nodes, JSX attributes (aria-label / placeholder / title / alt), and toast/alert/notify literal-arg calls. `createElement` short-form variants also caught (closes the `React.createElement('div', null, 'Hello')` bypass class — a real bypass found in practice).
+- **iOS:** the app's Swift feature views + the UI package's Swift sources for `Text("...")`, `.navigationTitle("...")`, `.accessibilityLabel("...")`, `.accessibilityHint("...")`, plus short-form variants (`Label`, `Button`, `.alert`, `.confirmationDialog`, `TextField`).
+- BRAND_STRINGS allowlist (your app name + integration brands such as `Google`, `Apple`, `iCloud`, `Firebase`, `iOS`, `Android`, `macOS`, `iPhone`, `iPad`) bypasses via second-pass filter.
 - Single-letter strings, pure-numeric strings, and `#if DEBUG` / `#Preview` blocks excluded via helper functions (`stripSwiftCommentsAndDebugBlocks`, `stripSwiftPreviewBlocks`).
 
 Count-tracked deferral semantics: both adding new sites AND silently migrating without updating count BOTH fail the gate (per [07-ratchet-framework.md](07-ratchet-framework.md)).
@@ -137,12 +137,12 @@ function MyComponent() {
 }
 ```
 
-The `useLocale()` hook reads from `LocaleContext` which subscribes to the live `Member.locale` Firestore field via the existing auth context.
+The `useLocale()` hook reads from a `LocaleContext` which subscribes to the live per-user locale field via the existing auth context.
 
 ### iOS
 
 ```swift
-import ChorzUI
+import AppUI
 
 struct MyView: View {
   @Environment(LocaleResolver.self) var locales
@@ -153,40 +153,40 @@ struct MyView: View {
 }
 ```
 
-ChorzUI atoms (which live in a separate package that can't import ChorzCore) get their locale via a SwiftUI environment value: `EnvironmentValues.chorzLocale` injected at `AppRoot.body`. App-feature views use `@Environment(LocaleResolver.self)`. Both paths converge on the same `t(key, locale:)` helper.
+UI-package atoms (which live in a separate package that can't import the core package) get their locale via a SwiftUI environment value carrying the active locale, injected at the app root. App-feature views use `@Environment(LocaleResolver.self)`. Both paths converge on the same `t(key, locale:)` helper.
 
-The chorz Phase 1078 lesson: ChorzUI atoms needed locale awareness without importing ChorzCore (the package graph forbids it). The SwiftUI environment value cleanly resolves this. See `chorz/packages/ChorzUI/Sources/ChorzUI/Environment/LocaleEnvironment.swift` for the implementation.
+The lesson worth carrying: UI-package atoms need locale awareness without importing the core package (the package graph forbids that dependency direction). A SwiftUI environment value carrying the active locale — injected at app root so the UI-package atoms localize without importing the core package — cleanly resolves this.
 
-### CF-side
+### Server-side
 
 ```ts
 import { t } from '@camelburrito/cf-utils';
 
-throw new HttpsError('failed-precondition', 'chore/no-deadline');
-// Client cfErrorHandler.ts maps 'chore/no-deadline' to t('errors.chore.no-deadline')
+throw new HttpsError('failed-precondition', 'item/no-deadline');
+// The client error handler maps 'item/no-deadline' to t('errors.item.no-deadline')
 ```
 
-CF wire codes are short slug strings (`chore/no-deadline`, `calendar/oauth-client-rejected`). The client maps them to catalog keys via `cfErrorHandler.ts`. New CF error codes need new `errors.<namespace>.<slug>` catalog entries in the same commit.
+Server wire codes are short slug strings (`item/no-deadline`, `integration/oauth-client-rejected`). The client maps them to catalog keys via its error handler. New server error codes need new `errors.<namespace>.<slug>` catalog entries in the same commit.
 
 ---
 
 ## 7. Brand-string allowlist + interpolation
 
-Brand strings (12 entries in chorz) bypass the bare-literal ratchet. They're considered "the same in every locale" by convention. Translators copy them verbatim if they appear in catalog values.
+Brand strings bypass the bare-literal ratchet. They're considered "the same in every locale" by convention. Translators copy them verbatim if they appear in catalog values.
 
-Interpolation: `t('key', { vars: { name: 'Alice' } })` substitutes `{name}` placeholders in the value. The same `{var}` set must appear in every locale's value for that key; the codegen verifier catches drift (Spanish translation missing the `{name}` placeholder fails strings:check).
+Interpolation: `t('key', { vars: { name: 'Alice' } })` substitutes `{name}` placeholders in the value. The same `{var}` set must appear in every locale's value for that key; the codegen verifier catches drift (a Spanish translation missing the `{name}` placeholder fails strings:check).
 
 ---
 
-## 8. CF wire codes catalog
+## 8. Server wire codes catalog
 
 The `errors.*` namespace is the canonical wire-code catalog. Pattern:
 
-- A CF throws `HttpsError('failed-precondition', 'chore/no-deadline')`.
-- Client `cfErrorHandler.ts` `resolveCfErrorMessage(err)` reads the code, transforms to `errors.chore.no-deadline`, calls `t()`.
+- A server callable throws `HttpsError('failed-precondition', 'item/no-deadline')`.
+- The client error handler's `resolveCfErrorMessage(err)` reads the code, transforms to `errors.item.no-deadline`, calls `t()`.
 - If the code isn't in the catalog, falls back to `errors.generic`.
 
-Every new CF wire code that should surface to users needs an `errors.<code>` catalog entry. Don't add wire codes without catalog entries — the user sees "Something went wrong" instead of the real error.
+Every new server wire code that should surface to users needs an `errors.<code>` catalog entry. Don't add wire codes without catalog entries — the user sees "Something went wrong" instead of the real error.
 
 ---
 
@@ -199,7 +199,7 @@ Recipe: [recipes/add-a-locale.md](../../recipes/add-a-locale.md). Key steps:
 3. Translate values. Maintain key parity (codegen verifier enforces).
 4. `npm run strings:gen` regenerates outputs.
 5. Add to locale picker UI.
-6. Add a permutation cell that seeds a member with `Member.locale = '<locale>'` (Mandate 1 of testing cadence).
+6. Add a permutation cell that seeds a user with their locale set to `<locale>` (Mandate 1 of the testing cadence).
 
 ---
 
@@ -212,18 +212,9 @@ Recipe: [recipes/add-a-locale.md](../../recipes/add-a-locale.md). Key steps:
 - [ ] `LocaleResolver` / `useLocale()` wiring through the auth context (per-platform).
 - [ ] `no-bare-user-facing-string-in-features` ratchet wired (count-tracked deferral baseline at adoption — drain over phases).
 - [ ] BRAND_STRINGS allowlist with your app name + integration brands.
-- [ ] `cfErrorHandler.ts` mapping CF wire codes → `errors.<code>` catalog keys.
+- [ ] Client error handler mapping server wire codes → `errors.<code>` catalog keys.
 - [ ] First non-en-US locale only when product validates the demand — don't pre-translate without a user need.
 
 ---
 
-## Reference reading
-
-- `chorz/shared/strings/catalogs/en-US.json` — exemplar catalog (524 keys as of Phase 1078)
-- `chorz/scripts/gen-strings.mjs` — codegen runner emitting 3 platform-native outputs
-- `chorz/src/lib/strings/t.ts` — web `t()` helper
-- `chorz/packages/ChorzUI/Sources/ChorzUI/Environment/LocaleEnvironment.swift` — SwiftUI env injection pattern (the Phase 1078 lesson — ChorzUI atoms localize without importing ChorzCore)
-- `chorz/src/__tests__/no-bare-user-facing-string-in-features.test.ts` — strict-zero ratchet (drained empty for `WEB_DEFERRED` + `SWIFT_DEFERRED` as of Phase 1078)
-- `chorz/src/lib/firebase/cfErrorHandler.ts` — CF wire-code → catalog-key mapping
-- `chorz/docs/architecture/design-system-architecture.md § 3.5 "String Catalog"` — full pipeline architecture
-- `chorz/functions/src/users/updateMemberLocale.ts` + `updateHouseholdLocale.ts` — locale-write CFs
+**Last updated:** 2026-06-21

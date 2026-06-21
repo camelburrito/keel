@@ -1,7 +1,6 @@
 # 05 — Observability & PII Handling
 
 **Status:** 🟢 drafted
-**Reference impl:** `chorz/docs/architecture/pii-handling.md`, `chorz/shared-cf-utils/src/utils/logger.ts`, `chorz/shared-cf-utils/src/observability/instrument.ts`, `chorz/src/lib/sentry.ts`, `chorz/scripts/audit-cloud-logging-pii.mjs`, `chorz/src/__tests__/no-console-in-source.test.ts`, `chorz/src/__tests__/no-bare-firebase-uid-in-logger.test.ts`
 
 ---
 
@@ -16,7 +15,7 @@ This is a privacy floor you never lower. Defense in depth is the only way to hol
 3. Runtime — every logger path runs a multi-stage redact pipeline; every Cloud Function is wrapped by an unhandled-error catch that routes errors through the same pipeline.
 4. Operational — a weekly read-only audit scout greps live production logs for the patterns that should never appear.
 
-Whatever survives all four is a real leak. The history table in § 8 captures the incidents this stack has caught (and the gaps that drove each new layer).
+Whatever survives all four is a real leak. The history table in § 8 captures the bug classes this stack has caught (and the gaps that drove each new layer).
 
 ---
 
@@ -31,7 +30,7 @@ Every product has at least these surfaces. Inventory them in `docs/architecture/
 | **Sentry events (web)** | `src/**` → `Sentry.captureException/Message` → Sentry | `beforeSend` deep-walk + `SyncRedactor` | ESLint `no-console: error` + strict-zero ratchet |
 | **Sentry breadcrumbs** | Auto-captured by Sentry SDK | `beforeSend` walks breadcrumb data too | Same |
 | **Browser DevTools (web `console.*`)** | Direct browser stdout | **None** — bypasses Sentry entirely | ESLint `no-console: error` + strict-zero ratchet; every `console.*` carries `// eslint-disable-next-line no-console -- <rationale>` |
-| **Audit trail (`audit/{auditId}` Firestore)** | `writeWithAudit` writes to Firestore | **Deliberate carve-out** — audit records persist actor/target UIDs by design (D-01) | Not a "log surface" in the observability sense; an operational record |
+| **Audit trail (`audit/{auditId}` Firestore)** | `writeWithAudit` writes to Firestore | **Deliberate carve-out** — audit records persist actor/target UIDs by design | Not a "log surface" in the observability sense; an operational record |
 | **Native crash reporting** (Crashlytics / Sentry mobile) | Native SDK → vendor service | Vendor's PII guarantees + sample sanitization | Document in arch doc § 1; vendor-specific |
 
 ---
@@ -45,8 +44,8 @@ Every `logger.{log,info,warn,error,debug}` call routes BOTH the message AND each
 | 1 | **`scrubGaxiosError`** | OAuth secrets in error responses: `refresh_token`, `access_token`, `id_token`, `client_secret` → `[REDACTED_OAUTH_TOKEN]` | Recursive walker. Normalizes `URLSearchParams` → plain object. **`code` deliberately EXCLUDED** — HTTP status + JS `Error.code` semantics dominate; the OAuth-grant flow's `code` is short-lived and surfaces as a value, not a secret. |
 | 2 | **Domain-PII scrubber (slot)** | Product-specific PII not covered by the generic email/phone redactor (e.g., calendar event titles, attendee lists, contacts metadata, health values, transaction amounts) → `<scrubbed:<domain>-pii>` | **You implement this slot.** Wire your scrubber via `configureLogger({ domainScrubber: scrubMyDomainFields })`. Each domain field is a known leak class. |
 | 3 | **`redact-pii` `SyncRedactor`** | Generic PII: email, phone, SSN, credit card, IP, names, addresses, DOB, IBAN, VIN | Same library used by web Sentry pipeline. Operates on string output. **Always runs regardless of bypass** — this is the privacy floor. |
-| 4 | **`FIRESTORE_PATH_RE`** | `/users/{uid}/...` / `/households/{hid}/members/{mid}/...` style paths → segment IDs replaced with `[REDACTED_ID]` | Path-shape regex. Catches CF error messages of the form "Document /users/abc123def... not found". |
-| 5 | **`LABELED_ID_RE`** | Label-value pairs: `uid: "..."`, `householdId: "..."`, `memberId: "..."` → `<label>: [REDACTED_ID]` | Object-stringify output. Catches structured logs that JSON-serialized internal IDs. |
+| 4 | **`FIRESTORE_PATH_RE`** | Document/collection paths of the form `/users/{uid}/...` → segment IDs replaced with `[REDACTED_ID]` | Path-shape regex. Catches CF error messages of the form "Document /users/abc123def... not found". |
+| 5 | **`LABELED_ID_RE`** | Label-value pairs whose label ends in `Id`, plus `uid` and `token` labels: `uid: "..."`, `<entity>Id: "..."` → `<label>: [REDACTED_ID]` | Object-stringify output. Catches structured logs that JSON-serialized internal IDs. |
 | 6 | **`BARE_FIREBASE_UID_RE`** | Bare 28-char Firebase Auth UIDs without a label: `/\b[a-zA-Z0-9]{28}\b/g` → `[REDACTED_ID]` | **Width-pinned to exactly 28.** Avoids false positives on 20-char Firestore auto-IDs, 32-char hex digests, 40-char git SHAs. Honors a `KNOWN_28CHAR_IDENTIFIERS` allowlist (project IDs, build SHAs the platform happens to render at 28 chars). |
 | 7 | **`FCM_TOKEN_RE`** | FCM device tokens: `[A-Za-z0-9_-]{20,}:APA91[A-Za-z0-9_-]{100,}` → `[REDACTED_FCM_TOKEN]` | Runs FIRST inside `redactInternalIds()` (the layer 4-7 sub-pipeline) because the long alphanumeric prefix would otherwise be half-redacted by `LABELED_ID_RE`. |
 
@@ -65,7 +64,7 @@ A controlled bypass is essential for incident triage — sometimes you genuinely
 
 Web-side redaction runs in `Sentry.init`'s `beforeSend` hook. Three jobs:
 
-1. **`deepRedactStrings(event, redactor)`** — walker that recurses through nested objects + arrays and redacts string LEAF values only. **Never serializes the whole event to JSON for redaction** — that round-trip (`JSON.parse(redact(JSON.stringify(...)))`) silently produces parse errors on payloads containing characters PII redaction touches (e.g., quotes inside redacted email-like strings). Chorz hit this as a class of `SyntaxError: Unexpected identifier "URL"` Sentry events in 2026-04..05.
+1. **`deepRedactStrings(event, redactor)`** — walker that recurses through nested objects + arrays and redacts string LEAF values only. **Never serializes the whole event to JSON for redaction** — that round-trip (`JSON.parse(redact(JSON.stringify(...)))`) silently produces parse errors on payloads containing characters PII redaction touches (e.g., quotes inside redacted email-like strings). One project hit this as a class of `SyntaxError: Unexpected identifier "URL"` Sentry events before the rewrite.
 2. **Same `redact-pii` `SyncRedactor`** as layer 3 of the CF pipeline — single library, two surfaces, same vocabulary.
 3. **`SENTRY_IGNORED_ERRORS: RegExp[]`** consulted by Sentry's `ignoreErrors` config. SDK-internal classes that carry zero PII (e.g., `/send was called before connect/i` — Sentry-replay-internal race during tab-close) get suppressed at the source. **Object-frozen** for runtime mutation defense.
 
@@ -79,7 +78,7 @@ Web-side redaction runs in `Sentry.init`'s `beforeSend` hook. Three jobs:
 |------|-------|--------------|
 | `no-console: error` (ESLint at the root + per workspace) | Write-time | The most common bypass; catches at IDE / `npm run lint`. |
 | `no-console-in-source` (strict-zero ratchet) | Pre-commit + CI | `git commit --no-verify` ESLint escape. Requires `-- <rationale>` segment on every `eslint-disable-next-line no-console` directive — empty disables fail the gate. |
-| `no-<vendor>-import-in-cf` (strict-zero ratchet) | Pre-commit + CI | Prevents a parallel scrub pipeline outside `@camelburrito/cf-utils.logger`. (chorz uses `no-sentry-import-in-cf` for the same reason — CF observability is Cloud Logging only.) |
+| `no-<vendor>-import-in-cf` (strict-zero ratchet) | Pre-commit + CI | Prevents a parallel scrub pipeline outside `@camelburrito/cf-utils.logger`. (E.g. a `no-sentry-import-in-cf` rule if you decide CF observability is Cloud Logging only.) |
 | `no-bare-firebase-uid-in-logger` (strict-zero ratchet) | Pre-commit + CI | Defends `BARE_FIREBASE_UID_RE` + `KNOWN_28CHAR_IDENTIFIERS` + `wrapHandler` breadcrumb invariants by structural assertion (regex export, redact pipeline composition, breadcrumb emit). |
 | `wrapHandler` Proxy on every onCall | Runtime | Routes thrown errors through the logger before rethrow. Unhandled-error paths can no longer escape the redact pipeline. |
 | CF ESLint gate in `scripts/ci-local.sh` | Pre-push + CI | Linter runs against every CF source dir. Web side relies on the ratchet because typical web codebases carry a pre-existing ESLint backlog (tech debt; the ratchet still defends the PII invariant strictly). |
@@ -95,7 +94,7 @@ Some places PII appears in logs by design. **Every one must be documented with r
 Common legitimate carve-outs:
 
 - **5.1 Audit trail** — `audit/{auditId}` records persist actor/target IDs intentionally. The redactor only runs on logger output; audit-trail writes are direct Firestore mutations through `writeWithAudit`. Locked by `no-audit-bypass-in-functions` ratchet.
-- **5.2 Tokens transmitted to a vendor** — FCM tokens go to Google FCM for delivery; OAuth tokens go to Google OAuth for exchange. Wire content goes to the vendor, not your logs. On error paths, `scrubGaxiosError` + `FCM_TOKEN_RE` redact them in any log output.
+- **5.2 Tokens transmitted to a vendor** — FCM tokens go to the push vendor for delivery; OAuth tokens go to the OAuth provider for exchange. Wire content goes to the vendor, not your logs. On error paths, `scrubGaxiosError` + `FCM_TOKEN_RE` redact them in any log output.
 - **5.3 i18n fallback warnings** — codegen-emitted `console.warn` calls fire on missing-translation paths. Interpolation values are catalog keys + locale codes (neither is PII). Each call site carries an `eslint-disable-next-line no-console -- <rationale>` directive emitted by the codegen.
 - **5.4 Static config-missing warnings** — bootstrap modules (Sentry init, Analytics init, FCM VAPID key) `console.warn` when their env vars are missing. Static strings; load-order-special (Sentry can't `captureMessage` before init); document the rationale at each call site.
 - **5.5 Dev-only debug surfaces** — design-system showcase pages (`/components`), debug-mode dashboards, screenshot harness routes. Use a top-of-file `/* eslint-disable no-console -- <rationale> */` block.
@@ -124,7 +123,7 @@ Mount pattern: every CF index file does `export const myCf = wrapHandler(require
 `scripts/audit-cloud-logging-pii.mjs` — operator-runnable, **read-only** scout. Pattern:
 
 - `gcloud logging read` samples the last N log entries (default 1000) over the last M hours (default 168 = 7 days) from the project.
-- Scans each entry's text for 7 PII pattern classes (email, phone E.164, 28-char Firebase UID, Firestore-paths-with-embedded-IDs, FCM tokens, OAuth refresh-token prefix `1//`, and any domain-specific patterns you add — e.g., Calendar v3 keys for chorz).
+- Scans each entry's text for the standard PII pattern classes (email, phone E.164, 28-char Firebase UID, document-paths-with-embedded-IDs, FCM tokens, OAuth refresh-token prefix `1//`, plus any domain-specific patterns you add for your product).
 - Honors a `REDACTION_SENTINELS` allowlist (`[REDACTED]`, `[REDACTED_ID]`, `[REDACTED_FCM_TOKEN]`, `[REDACTED_OAUTH_TOKEN]`, `<scrubbed:<domain>-pii>`) — matches inside redaction sentinels are not flagged.
 - Also honors a `KNOWN_28CHAR_IDENTIFIERS` Set (project IDs, build SHAs) that defends the runtime BARE_FIREBASE_UID_RE allowlist symmetrically.
 - Exit 0 if clean, 1 if matches. CI-friendly.
@@ -150,15 +149,15 @@ Run once per environment at project setup.
 
 ## 8. Incident learnings (the bug classes this stack has caught)
 
-Each row is a prior incident + the structural defense that now prevents recurrence. This table belongs in your downstream arch doc; the keel version captures the lessons that earned their place in the standard stack.
+Each row is a prior bug class + the structural defense that now prevents recurrence. This table belongs in your downstream arch doc; the keel version captures the lessons that earned their place in the standard stack — anonymized, so the lesson carries without the incident id.
 
-| When | Incident | Layer that caught it (now) |
-|------|----------|---------------------------|
-| Pre-2026-04-26 | Plain-text PII (emails, names) in CF Cloud Logging | Layer 3 (`redact-pii`) adoption |
-| 2026-04..05 | `SyntaxError: Unexpected identifier "URL"` Sentry events from `JSON.parse(redact(JSON.stringify(...)))` round-trip | Web pipeline rewrite — walker, not round-trip |
-| 2026-05-27 | Plaintext `refresh_token` in CF error `textPayload` (errorGroup `CIrnzZbL6NnqqAE`) | Layer 1 (`scrubGaxiosError`) + `wrapHandler` unhandled-error path |
-| 2026-06-03 | Bare 28-char Firebase UIDs in CF log strings, usable for backwards email resolution | Layer 6 (`BARE_FIREBASE_UID_RE`) + `wrapHandler` 'callable-invocation' breadcrumb dominating queryability |
-| 2026-06-04 | `console.*` bypasses (web Sentry, CF logger) detected post-PR-#627 review | ESLint `no-console: error` + strict-zero ratchet + CF lint gate in `ci-local.sh` |
+| Bug class | What happened | Layer that catches it now |
+|-----------|---------------|---------------------------|
+| Plain-text PII in CF logs | Emails and names landed in CF Cloud Logging unredacted | Layer 3 (`redact-pii`) adoption |
+| Redaction round-trip parse errors | `JSON.parse(redact(JSON.stringify(...)))` round-trip produced `SyntaxError` Sentry events on payloads containing characters redaction touched | Web pipeline rewrite — walker, not round-trip |
+| OAuth secret in error payload | A plaintext `refresh_token` surfaced in a CF error `textPayload` via an unhandled error | Layer 1 (`scrubGaxiosError`) + `wrapHandler` unhandled-error path |
+| Bare UID in log strings | Bare 28-char Firebase UIDs appeared in CF log strings, usable for backwards email resolution | Layer 6 (`BARE_FIREBASE_UID_RE`) + `wrapHandler` 'callable-invocation' breadcrumb dominating queryability |
+| `console.*` bypass | `console.*` calls (web → DevTools, CF → Cloud Logging) bypassed both redact pipelines | ESLint `no-console: error` + strict-zero ratchet + CF lint gate in `ci-local.sh` |
 
 The pattern: every time a real leak ships, a structural defense earns its way into the standard stack. Don't relitigate the lesson on the next product.
 
@@ -184,16 +183,20 @@ Checklist for a fresh project setup. Most of it ships in the templates; this enu
 
 ## Reference reading
 
-Specific chorz file paths for cross-referencing during implementation:
+Generic file paths in a keel-derived project for cross-referencing during implementation:
 
-- `chorz/docs/architecture/pii-handling.md` — the canonical inventory
-- `chorz/shared-cf-utils/src/utils/logger.ts` — the 7-layer pipeline, `BARE_FIREBASE_UID_RE` exported by name
-- `chorz/shared-cf-utils/src/observability/instrument.ts` — `wrapHandler` Proxy + `scrubGaxiosError` + `OAUTH_SECRET_FIELDS` + `scrubCalendarFields` (chorz's domain scrubber)
-- `chorz/src/lib/sentry.ts` — `beforeSend` + `deepRedactStrings` + `SENTRY_IGNORED_ERRORS`
-- `chorz/scripts/audit-cloud-logging-pii.mjs` — weekly scout (operator tool)
-- `chorz/scripts/setup-cf-alerts.sh` — alert wiring (per-env gcloud wrapper)
-- `chorz/src/__tests__/no-console-in-source.test.ts` — ratchet #48
-- `chorz/src/__tests__/no-bare-firebase-uid-in-logger.test.ts` — ratchet #47
-- `chorz/src/__tests__/no-sentry-import-in-cf.test.ts` — ratchet defending CF observability boundary
-- `chorz/docs/runbooks/observability.md` — Tier 1/2/3 triage runbook
-- `chorz/functions/src/audit/writeWithAudit.ts` — the audit-trail carve-out (D-01)
+- `docs/architecture/pii-handling.md` — the canonical inventory
+- `packages/cf-utils/src/utils/logger.ts` — the 7-layer pipeline, `BARE_FIREBASE_UID_RE` exported by name
+- `packages/cf-utils/src/observability/instrument.ts` — `wrapHandler` Proxy + `scrubGaxiosError` + `OAUTH_SECRET_FIELDS` + your domain scrubber
+- `src/lib/sentry.ts` — `beforeSend` + `deepRedactStrings` + `SENTRY_IGNORED_ERRORS`
+- `scripts/audit-cloud-logging-pii.mjs` — weekly scout (operator tool)
+- `scripts/setup-cf-alerts.sh` — alert wiring (per-env gcloud wrapper)
+- `src/__tests__/no-console-in-source.test.ts` — the console-bypass ratchet
+- `src/__tests__/no-bare-firebase-uid-in-logger.test.ts` — the bare-UID ratchet
+- `src/__tests__/no-<vendor>-import-in-cf.test.ts` — the CF observability boundary ratchet
+- `docs/runbooks/observability.md` — Tier 1/2/3 triage runbook
+- `functions/src/audit/writeWithAudit.ts` — the audit-trail carve-out
+
+---
+
+**Last updated:** 2026-06-21

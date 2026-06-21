@@ -57,7 +57,7 @@ echo "==> STEP 2: Frontend Coverage"
 # STEP 3
 echo "==> STEP 3: CF Coverage (chained buckets)"
 # TODO: add buckets as workspaces appear:
-# (cd shared-cf-utils && ./node_modules/.bin/vitest run --coverage)
+# (cd packages/cf-utils && ./node_modules/.bin/vitest run --coverage)
 # (cd functions && ./node_modules/.bin/vitest run --coverage)
 
 # STEP 3.5

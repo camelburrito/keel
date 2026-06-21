@@ -1,7 +1,6 @@
 # 02 — Design System
 
 **Status:** 🟢 drafted
-**Reference impl:** `chorz/CLAUDE.md § Design System Governance`, `chorz/src/ui/`, `chorz/shared/tokens/tokens.json`, `chorz/docs/architecture/design-system-architecture.md`
 
 ---
 
@@ -20,12 +19,12 @@ Four mandates compose the system. Each is enforced structurally (ratchets), not 
 All colors, spacing, typography, motion values, and breakpoints flow through `shared/tokens/tokens.json`. Codegen (`scripts/gen-tokens.mjs`) emits per-platform consumables:
 
 - Web: `src/ui/tokens.generated.css` — CSS custom properties (`--color-accent-primary: #0066FF`).
-- iOS: `packages/<Core>/Sources/<Core>/Tokens/<Family>.generated.swift` — Swift static lets in token-family structs (`Colors.Accent.primary`, `Spacing.md`).
-- Android (when it lands): `packages/<Core>/.../tokens/<Family>.generated.kt`.
+- iOS: `packages/<CoreUI>/Sources/<CoreUI>/Tokens/<Family>.generated.swift` — Swift static lets in token-family structs (`Colors.Accent.primary`, `Spacing.md`).
+- Android (when it lands): `packages/<CoreUI>/.../tokens/<Family>.generated.kt`.
 
 **Allowed exceptions** in source code: `0`, `100%`, `auto`, `none`, `transparent`. The `no-undefined-tokens` ratchet will flag drift (refs to tokens that don't exist in the JSON).
 
-**Per-platform encoding is load-bearing.** Web gets `var(--color-accent-primary)` references; Swift gets a literal `#hex` baked into the `Color(red:green:blue:)` call. Codegen is responsible for "same source, different encoding" so consumers never need to know they're sharing tokens cross-platform (memory rule `feedback_codegen_per_platform`).
+**Per-platform encoding is load-bearing.** Web gets `var(--color-accent-primary)` references; Swift gets a literal `#hex` baked into the `Color(red:green:blue:)` call. Codegen is responsible for "same source, different encoding" so consumers never need to know they're sharing tokens cross-platform.
 
 ### Mandate 2 — Hierarchy Mandate
 
@@ -34,27 +33,27 @@ Four layers, ordered:
 1. **L1 — Tokens** (`shared/tokens/tokens.json` → generated per-platform).
 2. **L2 — Primitives** (`src/ui/primitives/`) — unstyled, behavior-only (focus rings, accessibility attrs, click outside, portal mounts).
 3. **L3 — Elements** (`src/ui/elements/`) — styled single-purpose UI (`Button`, `Input`, `Badge`, `Avatar`, `IconTile`).
-4. **L4 — Components** (`src/ui/components/`) — composed UI (`Modal`, `Card with header`, `ChoreCard`).
+4. **L4 — Components** (`src/ui/components/`) — composed UI (`Modal`, `Card with header`, a domain card composed of multiple elements).
 
 Pages (`src/pages/`) and features (`src/features/`) compose using L2+ only. They MUST NOT introduce new styled atoms — that's an L3 promotion candidate that goes through review.
 
-The iOS equivalent: `packages/<Core>UI/Sources/<Core>UI/Atoms/` for L3 elements, `Components/` for L4. The cross-platform parity is enforced by paired contract fixtures (see [06-testing-cadence.md § Sub-pattern: cross-platform contract fixtures](06-testing-cadence.md)).
+The iOS equivalent: `packages/<CoreUI>/Sources/<CoreUI>/Atoms/` for L3 elements, `Components/` for L4. The cross-platform parity is enforced by paired contract fixtures (see [06-testing-cadence.md § Sub-pattern: cross-platform contract fixtures](06-testing-cadence.md)).
 
 ### Mandate 3 — Off-Grid Mandate
 
 Any value that genuinely cannot be tokenized (e.g., a one-off pixel offset earned by a specific design intent, a viewport-bound transition duration earned by a user-research outcome) MUST be a named TypeScript/CSS/Swift constant with an inline comment of the form:
 
 ```ts
-const TOAST_REVIEW_HOLD_MS = 6000; // Design-intent constant — explicit user-review pause (see GH #309)
+const TOAST_REVIEW_HOLD_MS = 6000; // Design-intent constant — explicit user-review pause (see GH #<issue>)
 ```
 
 ```swift
-let ctaHeight: CGFloat = 64 // Design-intent constant — kid-finger tap target (see GH #309)
+let ctaHeight: CGFloat = 64 // Design-intent constant — primary CTA tap target (see GH #<issue>)
 ```
 
-The `// Design-intent constant — <reason> (see GH #<issue>)` comment shape is what the bare-literal ratchets recognize as a legitimate carve-out. GH #309 is the chorz precedent that established the pattern.
+The `// Design-intent constant — <reason> (see GH #<issue>)` comment shape is what the bare-literal ratchets recognize as a legitimate carve-out. Pin the comment to whatever issue tracker the consuming project uses.
 
-**Memory rule `feedback_no_new_tokens_without_approval`:** snap literals onto the closest existing token by default. Don't add new tokens to `tokens.json` without explicit approval. The off-grid escape is the right path for one-offs.
+**The no-new-tokens default:** snap literals onto the closest existing token by default. Don't add new tokens to `tokens.json` without explicit approval. The off-grid escape is the right path for one-offs.
 
 ### Mandate 4 — String Catalog Mandate
 
@@ -79,7 +78,7 @@ Structural enforcement via `@camelburrito/ratchet-kit` exports, all strict-zero 
 | `noBareHexInCodegenOutput` | hex literals in generator-emitted files (cross-platform contract gate) |
 | `noBareFontPropertyInCss`, `noBareViewportEmInCss` | typography shorthand + viewport-relative drift |
 
-Project-specific ratchets defending product anti-patterns (e.g., `no-legacy-kid-cta-token` in chorz) live in the project's own `src/__tests__/`. Recipe: [recipes/add-a-ratchet.md](../../recipes/add-a-ratchet.md).
+Project-specific ratchets defending a product's own anti-patterns (e.g., locking a renamed-away legacy token symbol out of the codebase) live in the project's own `src/__tests__/`. Recipe: [recipes/add-a-ratchet.md](../../recipes/add-a-ratchet.md).
 
 Additional gates:
 - `npm run tokens:check` (prebuild + pre-commit) — verifies codegen is in sync.
@@ -92,7 +91,7 @@ Additional gates:
 
 Same source, different encoding. Same logic, two runners.
 
-- **Tokens:** one `tokens.json` → CSS vars for web, Swift literals for iOS. The `no-bare-hex-in-codegen-output` ratchet defends against the generator emitting bare hex instead of per-platform token references (the chorz Phase 1051 Plan 06 incident: `gen-icons.cjs` emitting bare hex in the var-reference map; defended by ratchet from then on).
+- **Tokens:** one `tokens.json` → CSS vars for web, Swift literals for iOS. The `no-bare-hex-in-codegen-output` ratchet defends against the generator emitting bare hex instead of per-platform token references (a real incident: an icon-color generator emitted bare hex into the var-reference map instead of `var(--color-*)` references; defended by the ratchet from then on).
 - **Presentation projectors:** one TS function + one Swift mirror produce identical `<Card>Presentation` data from the same input shape. One JSON fixture per scenario at `shared/test-fixtures/<system>/<scenario>/{input,expected}.json`; one TS contract test + one Swift contract test consume the same fixtures and assert byte-equality.
 - **UI atoms:** L3 elements with the same name + same props on web and iOS, rendering the same visual shape. Snapshot tests on both sides (RTL on web, `swift-snapshot-testing` on iOS) lock the rendered output.
 
@@ -214,17 +213,26 @@ This is not a new mandate — it's the move that takes the **Hierarchy Mandate**
 
 **Watch the WAI-ARIA APG contract.** An L3 composite that wraps a native interaction pattern owes the full keyboard contract — e.g. a `SegmentedControl` standing in for a tablist must implement the APG tablist pattern: roving `tabindex`, Arrow/Home/End to move focus, and (for a control whose change is destructive) **manual** activation so arrow-key *exploration* doesn't fire `onChange` until the user commits with Enter/click. Adding the atom without the keyboard contract trades a styling violation for an accessibility one. The same applies to `PickerTile` (`aria-pressed` / `aria-selected`) and any other composite that replaces a primitive's built-in semantics.
 
-Mirror the same move on iOS: migrate the last bare `TextField` / `Toggle` / `Picker` sites onto the native-shell-wrapping atoms (`Input` / `Toggle` / `Dropdown`) so the Swift Dimension-C ratchet also reaches strict-zero. Both platforms strict-zero is the goal — at that point the hierarchy is structurally complete and no feature can reintroduce a raw primitive.
+Mirror the same move on iOS: migrate the last bare `TextField` / `Toggle` / `Picker` sites onto the native-shell-wrapping atoms (`Input` / `Toggle` / `Dropdown`) so the Swift primitive-hierarchy ratchet also reaches strict-zero. Both platforms strict-zero is the goal — at that point the hierarchy is structurally complete and no feature can reintroduce a raw primitive.
+
+---
 
 ## Reference reading
 
-- `chorz/shared/tokens/tokens.json` — token source of truth
-- `chorz/src/ui/tokens.generated.css` — web codegen output
-- `chorz/packages/ChorzCore/Sources/ChorzCore/Tokens/Colors.generated.swift` — Swift codegen output
-- `chorz/src/ui/elements/` — exemplar L3 atoms
-- `chorz/src/ui/components/ChoreCard/ChoreCard.tsx` — exemplar L4 component with cross-platform projector
-- `chorz/packages/ChorzUI/Sources/ChorzUI/Atoms/ChoreCard.swift` — iOS mirror
-- `chorz/shared/test-fixtures/chore-card/` — paired contract fixtures
-- `chorz/src/__tests__/no-inline-style.test.ts` — exemplar ratchet
-- `chorz/docs/architecture/design-system-architecture.md` — full architecture doc (§ 3.5 covers string catalog)
-- `chorz/CLAUDE.md § Design System Governance` — project-level enforcement narrative
+The structural artifacts this doc describes, as they appear in a consuming project:
+
+- `shared/tokens/tokens.json` — token source of truth
+- `src/ui/tokens.generated.css` — web codegen output
+- `packages/<CoreUI>/Sources/<CoreUI>/Tokens/Colors.generated.swift` — Swift codegen output
+- `src/ui/elements/` — L3 atoms
+- `src/ui/components/<Card>/<Card>.tsx` — L4 component with a cross-platform projector
+- `packages/<CoreUI>/Sources/<CoreUI>/Atoms/<Card>.swift` — iOS mirror
+- `shared/test-fixtures/<system>/` — paired contract fixtures
+- `src/__tests__/no-inline-style.test.ts` — an exemplar ratchet
+- The project's own design-system architecture doc — full pipeline narrative including the string catalog
+
+Ratchet implementations referenced throughout live in `@camelburrito/ratchet-kit`; shared backend utilities in `packages/cf-utils`.
+
+---
+
+**Last updated:** 2026-06-21

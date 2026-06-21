@@ -1,7 +1,8 @@
 # 07 — Ratchet Framework
 
 **Status:** 🟢 drafted
-**Reference impl:** `chorz/src/__tests__/_ratchetHelpers.ts`, `chorz/src/__tests__/no-*.test.ts` (48 ratchets as of 2026-06-04), `@camelburrito/ratchet-kit`
+
+The reference implementation lives in [`@camelburrito/ratchet-kit`](https://www.npmjs.com/package/@camelburrito/ratchet-kit) — its `helpers` module provides the shared utilities (comment-stripping, brand-aware matching, deferral verification) and its `no-*.test.ts` exemplars show the strict-zero and count-tracked patterns in action.
 
 ---
 
@@ -21,7 +22,7 @@ Three properties earn the discipline its keep:
 
 ## What you must satisfy
 
-- `_ratchetHelpers.ts` module (or `@camelburrito/ratchet-kit`) with shared utilities: `stripTsLineAndBlockComments`, `stripSwiftCommentsAndDebugBlocks`, `stripSwiftPreviewBlocks`, `countMatchesIgnoringBrands`, `DeferralEntry` shape, `checkDeferralCount` verifier.
+- A shared helpers module (use `@camelburrito/ratchet-kit`'s `helpers`, or a vendored copy) providing: `stripTsLineAndBlockComments`, `stripSwiftCommentsAndDebugBlocks`, `stripSwiftPreviewBlocks`, `countMatchesIgnoringBrands`, `DeferralEntry` shape, `checkDeferralCount` verifier.
 - Every ratchet test file follows the `no-<pattern>.test.ts` naming convention and lives at `src/__tests__/` (web) or `<workspace>/src/__tests__/` (per-workspace).
 - Each ratchet holds `EXPECTED_COUNTS = {}` (strict zero) OR `<PREFIX>_DEFERRED: Record<path, { count: number; rationale: string }>` (count-tracked).
 - Failure messages emit a **repair recipe**, not just a violation count.
@@ -80,7 +81,7 @@ If grandfathered, add to EXPECTED_COUNTS with rationale.
 
 The deferral shape's load-bearing property: both **adding new sites** AND **migrating an existing site without decrementing the count** fail the gate. The count must always equal reality. This prevents the silent migration failure mode (someone migrates one site of three, doesn't update count, the count of 3 lies about reality).
 
-The chorz `_ratchetHelpers.ts` `checkDeferralCount(actual, deferred)` does this verification.
+`@camelburrito/ratchet-kit`'s `checkDeferralCount(actual, deferred)` does this verification.
 
 ---
 
@@ -93,7 +94,7 @@ Before committing a new ratchet:
 4. Run the ratchet — it must pass.
 5. Commit the ratchet + the test injection-and-restore cycle proves it works.
 
-The chorz `no-bare-firebase-uid-in-logger.test.ts` test docstring documents this — three structural assertions (regex export, `redactInternalIds` pipeline composition, `wrapHandler` breadcrumb emit) each individually mutation-tested at write time. A ratchet that hasn't been mutation-tested has unknown effective coverage.
+A structural ratchet can carry several independent assertions — e.g. one that locks a logging-redaction pipeline might assert that a redaction regex is exported, that it's composed into the redact function, and that a breadcrumb is emitted. Each assertion is individually mutation-tested at write time: break one, confirm only that one's assertion fails, restore. A ratchet that hasn't been mutation-tested has unknown effective coverage.
 
 ---
 
@@ -111,23 +112,23 @@ Swift-side ratchets (`no-bare-hex-in-swift`, `no-bare-size-in-swift`, etc.) scan
 
 The trade-off: text-scanning misses some structural cases SwiftLint would catch. The win: same vitest infrastructure, same pre-commit hook, same drift-gate, same CI run. Cross-platform parity by *runner*, not by *language toolchain*.
 
-The chorz Swift ratchet count is 6: `no-bare-hex-in-swift`, `no-bare-size-in-swift`, `no-bare-duration-in-swift`, `no-bare-font-size-in-swift`, `no-bare-color-constructor-in-swift`, `no-claims-value-use-in-swift`. All strict-zero. Helpers (`stripSwiftCommentsAndDebugBlocks`, `stripSwiftPreviewBlocks`) handle Swift-specific syntax forms (`//` comments, `#if DEBUG` blocks, `#Preview { ... }` canvas blocks).
+A typical Swift ratchet set covers design-token discipline as text scans — for example `no-bare-hex-in-swift`, `no-bare-size-in-swift`, `no-bare-duration-in-swift`, `no-bare-font-size-in-swift`, `no-bare-color-constructor-in-swift`, all strict-zero. Helpers (`stripSwiftCommentsAndDebugBlocks`, `stripSwiftPreviewBlocks`) handle Swift-specific syntax forms (`//` comments, `#if DEBUG` blocks, `#Preview { ... }` canvas blocks) so they don't produce false positives.
 
 ---
 
 ## 7. Ratchet categories
 
-The chorz 48-ratchet set falls into roughly five categories:
+A mature ratchet set tends to fall into roughly five categories:
 
 | Category | Examples | What they defend |
 |----------|----------|------------------|
 | **Design system** | `no-inline-style`, `no-bare-hex-in-{css,tsx,swift}`, `no-bare-px-in-css`, `no-undefined-tokens` | Token-first, hierarchy mandate (mandate 1+2 of [02-design-system.md](02-design-system.md)) |
-| **PII / observability** | `no-console-in-source`, `no-bare-firebase-uid-in-logger`, `no-sentry-import-in-cf` | The 7-layer redact pipeline + console-bypass defense ([05-observability-pii.md](05-observability-pii.md)) |
-| **CF discipline** | `no-audit-bypass-in-functions`, `no-done-without-completedat-in-functions`, `no-oncall-without-explicit-invoker`, `no-cf-without-contract-fixture`, `no-googleapis-in-default-codebase`, `no-cross-codebase-https-call`, `no-unindexed-collectiongroup-query` | Firebase stack invariants ([09-firebase-stack.md](09-firebase-stack.md)) |
-| **Test discipline** | `permutation-seed-count-locked`, `test-e2e-covers-all-specs`, `global-features-have-cross-page-spec`, `no-stale-e2e-selectors`, `deploy-scripts-gated-by-pre-release`, `calendar-onCall-has-emulator-integration` | The three testing mandates ([06-testing-cadence.md](06-testing-cadence.md)) |
-| **Drift gates** | `ratchet-list-precommit-vs-workflow`, `ci-local-mirrors-workflow`, `arch-doc-cf-claims`, `lockfile-sync-with-package-json`, `cf-utils-tarballs-committed`, `no-paths-filter-without-fetch-depth-zero` | Meta-invariants — the gates protecting the gates ([03-ci-cd.md](03-ci-cd.md), [04-architecture-docs.md](04-architecture-docs.md)) |
+| **PII / observability** | `no-console-in-source`, `no-bare-id-in-logger`, `no-untrusted-logger-import` | The redact pipeline + console-bypass defense ([05-observability-pii.md](05-observability-pii.md)) |
+| **Backend discipline** | `no-audit-bypass-in-functions`, `no-write-without-required-field`, `no-handler-without-explicit-invoker`, `no-handler-without-contract-fixture`, `no-banned-dep-in-codebase`, `no-cross-codebase-call`, `no-unindexed-query` | Backend / serverless invariants ([09-firebase-stack.md](09-firebase-stack.md)) |
+| **Test discipline** | `permutation-seed-count-locked`, `test-e2e-covers-all-specs`, `global-features-have-cross-page-spec`, `no-stale-e2e-selectors`, `deploy-scripts-gated-by-pre-release`, `handler-has-emulator-integration` | The three testing mandates ([06-testing-cadence.md](06-testing-cadence.md)) |
+| **Drift gates** | `ratchet-list-precommit-vs-workflow`, `ci-local-mirrors-workflow`, `arch-doc-claims-match-source`, `lockfile-sync-with-package-json`, `vendored-artifacts-committed`, `no-paths-filter-without-fetch-depth-zero` | Meta-invariants — the gates protecting the gates ([03-ci-cd.md](03-ci-cd.md), [04-architecture-docs.md](04-architecture-docs.md)) |
 
-A project doesn't need 48 ratchets on day 1. It needs the ones defending its actual invariants. Add ratchets as bug classes get fixed (the recipe pattern). Don't over-add — every ratchet has a maintenance cost.
+A project doesn't need dozens of ratchets on day 1. It needs the ones defending its actual invariants. Add ratchets as bug classes get fixed (the recipe pattern). Don't over-add — every ratchet has a maintenance cost.
 
 ---
 
@@ -142,13 +143,13 @@ A project doesn't need 48 ratchets on day 1. It needs the ones defending its act
 - The bug fits within an existing ratchet's scan scope (e.g., a new bare-hex pattern variant).
 - The existing ratchet's regex can be widened with a clean test addition.
 
-The chorz `no-bare-error-text-in-features` ratchet was added new (didn't fit `no-bare-primitive-in-features`, different regex shape). The `no-unindexed-collectiongroup-query` ratchet was widened in place from class A (collectionGroup queries) to also catch class B (fieldOverride-disables-COLLECTION-scope) without a new test file. Both are valid; the choice is whether the regex / scope is genuinely distinct.
+For example, a `no-bare-error-text-in-features` ratchet would be added new if it didn't fit an existing `no-bare-primitive-in-features` ratchet (different regex shape). By contrast, a query-indexing ratchet can be widened in place from class A (one query form) to also catch class B (a related index-disabling form) without a new test file. Both are valid; the choice is whether the regex / scope is genuinely distinct.
 
 ---
 
 ## 9. The repair-recipe failure message
 
-A ratchet that says "1 violation found" forces the reader to dig through the failure to understand what to do. A ratchet that says "migrate to `t()` via shared/strings/catalogs/en-US.json — see [playbook/08](docs/playbook/08-string-catalog-i18n.md)" tells them. The latter takes 30 seconds longer to write and saves 5 minutes per failure for every future reader.
+A ratchet that says "1 violation found" forces the reader to dig through the failure to understand what to do. A ratchet that says "migrate to `t()` via shared/strings/catalogs/en-US.json — see playbook 08-string-catalog-i18n.md" tells them. The latter takes 30 seconds longer to write and saves 5 minutes per failure for every future reader.
 
 Pattern:
 ```ts
@@ -169,21 +170,21 @@ ${Object.entries(violations).map(([f, n]) => `  ${f}: ${n}`).join('\n')}
 
 ## 10. Adopting this playbook
 
-- [ ] `_ratchetHelpers.ts` from `@camelburrito/ratchet-kit` (or vendored copy).
+- [ ] Pull in `@camelburrito/ratchet-kit`'s `helpers` (or vendor a copy).
 - [ ] First ratchet when first bug class is fixed (don't pre-write ratchets for hypothetical bugs).
 - [ ] Each new ratchet wired in BOTH `.githooks/pre-commit` ratchet array AND `.github/workflows/test-coverage.yml`.
 - [ ] `ratchet-list-precommit-vs-workflow.test.ts` ratchet wired from day 1 (the drift gate).
 - [ ] Recipe: [recipes/add-a-ratchet.md](../../recipes/add-a-ratchet.md).
-- [ ] When the count crosses ~10, narrate the full ratchet list in `CLAUDE.md § Audit rules for AI agents` so Claude sessions have the canonical reference inline.
+- [ ] When the count crosses ~10, narrate the full ratchet list in `CLAUDE.md § Audit rules for AI agents` so agent sessions have the canonical reference inline.
 
 ---
 
 ## Reference reading
 
-- `chorz/src/__tests__/_ratchetHelpers.ts` — shared helpers (the canonical implementation `@camelburrito/ratchet-kit` is extracted from)
-- `chorz/src/__tests__/no-inline-style.test.ts` — exemplar simple strict-zero ratchet
-- `chorz/src/__tests__/no-bare-user-facing-string-in-features.test.ts` — exemplar count-tracked deferral ratchet (drained to empty as of Phase 1078)
-- `chorz/src/__tests__/no-bare-firebase-uid-in-logger.test.ts` — exemplar 3-assertion structural ratchet
-- `chorz/src/__tests__/ratchet-list-precommit-vs-workflow.test.ts` — drift gate
-- `chorz/.githooks/pre-commit` — the ratchet array in action
-- `chorz/CLAUDE.md § Audit rules for AI agents` — canonical 48-ratchet narration with per-ratchet reasoning
+- `@camelburrito/ratchet-kit` — the shared `helpers` module + exemplar `no-*.test.ts` ratchets (simple strict-zero, count-tracked deferral, multi-assertion structural, and the drift gate).
+- Your own `.githooks/pre-commit` ratchet array — the canonical list in action.
+- Your own `CLAUDE.md § Audit rules for AI agents` — per-ratchet narration with reasoning.
+
+---
+
+**Last updated:** 2026-06-21

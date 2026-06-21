@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 // scripts/check-mermaid-render.mjs — authoritative mermaid render check.
-// Keep in parity with chorz scripts/check-mermaid-render.mjs (the reference impl).
+// This is the keel baseline copy; downstream projects vendor it via bootstrap and
+// keep it in parity. Improvements flow back here app-agnostically — no app names,
+// no app-specific paths.
 //
 // The `archDocIntegrity` ratchet (from @camelburrito/ratchet-kit) text-scans for
 // KNOWN mermaid trap classes — it is a heuristic, not a parse. This helper is the
