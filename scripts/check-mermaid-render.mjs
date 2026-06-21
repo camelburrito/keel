@@ -63,17 +63,23 @@ function expand(pattern) {
 }
 
 // ── extract ```mermaid blocks with their 1-based start line ──────────────────
+// Opens on `\b` (word boundary), not `\s*$`, so an info-string fence like
+// ```` ```mermaid foo ```` — which GitHub renders as language=mermaid — is still
+// captured (it would otherwise escape the gate). An unterminated fence (opened,
+// never closed) is reported as a failure: GitHub swallows the rest of the doc
+// into the code block, a real render bug.
 function extractBlocks(file) {
   const lines = readFileSync(file, 'utf8').split('\n');
   const blocks = [];
   let inBlock = false, start = 0, buf = [];
   for (let i = 0; i < lines.length; i++) {
     const l = lines[i];
-    if (!inBlock && /^```mermaid\s*$/.test(l)) { inBlock = true; start = i + 1; buf = []; continue; }
+    if (!inBlock && /^```mermaid\b/.test(l)) { inBlock = true; start = i + 1; buf = []; continue; }
     if (inBlock && /^```\s*$/.test(l)) { inBlock = false; blocks.push({ line: start, src: buf.join('\n') }); continue; }
     if (inBlock) buf.push(l);
   }
-  return blocks;
+  const unterminatedAt = inBlock ? start : null;
+  return { blocks, unterminatedAt };
 }
 
 // ── set up a jsdom DOM + the real mermaid engine (browser-free) ──────────────
@@ -88,8 +94,10 @@ async function loadMermaid() {
     process.exit(2);
   }
   // The DOM MUST exist on globalThis BEFORE mermaid is imported: mermaid bundles
-  // DOMPurify, which captures `window` at module-evaluation time. Import it first
-  // and every parse fails with "DOMPurify.sanitize is not a function".
+  // DOMPurify, which captures `window` at module-evaluation time. Import mermaid
+  // first and any non-trivial parse (HTML labels, subgraphs, …) fails with
+  // "DOMPurify.sanitize is not a function" — verified: a bare `A-->B` survives,
+  // but `A["x<br/>y"]` and any `subgraph` do not.
   const dom = new JSDOM('<!DOCTYPE html><body></body>', { pretendToBeVisual: true });
   globalThis.window = dom.window;
   globalThis.document = dom.window.document;
@@ -123,25 +131,28 @@ let okBlocks = 0;
 let okFiles = 0;
 
 for (const file of files) {
-  const blocks = extractBlocks(file);
-  if (blocks.length === 0) continue;
-  let fileOk = true;
+  const { blocks, unterminatedAt } = extractBlocks(file);
+  if (unterminatedAt !== null) {
+    failures.push({ file, line: unterminatedAt, message: 'unterminated ```mermaid fence (opened here, never closed)' });
+  }
+  if (blocks.length === 0 && unterminatedAt === null) continue;
+  let fileBroken = unterminatedAt !== null;
   for (const b of blocks) {
     try {
       await mermaid.parse(b.src);
       okBlocks++;
     } catch (e) {
-      fileOk = false;
+      fileBroken = true;
       failures.push({ file, line: b.line, message: (e?.message ?? String(e)).split('\n').slice(0, 3).join(' ') });
     }
   }
-  if (fileOk) { okFiles++; log(`  ✓ ${file} (${blocks.length} block${blocks.length === 1 ? '' : 's'})`); }
-  else log(`  ✗ ${file} — ${blocks.filter((b) => failures.some((f) => f.file === file && f.line === b.line)).length} broken block(s)`);
+  if (!fileBroken) { okFiles++; log(`  ✓ ${file} (${blocks.length} block${blocks.length === 1 ? '' : 's'})`); }
+  else log(`  ✗ ${file} — ${failures.filter((f) => f.file === file).length} problem(s)`);
 }
 
 log('');
 if (failures.length > 0) {
-  log(`[check-mermaid-render] ${failures.length} mermaid block(s) failed to render:\n`);
+  log(`[check-mermaid-render] ${failures.length} mermaid problem(s):\n`);
   for (const f of failures) log(`  ✗ ${f.file}:${f.line} — ${f.message}`);
   log('\nGitHub renders mermaid via the real parser. Common traps (see playbook 04):');
   log('  \\n in a label → <br/>;  ";" in sequenceDiagram text → "," ;  "." in a -. dotted .-> label;');
@@ -149,5 +160,5 @@ if (failures.length > 0) {
   process.exit(1);
 }
 
-log(`[check-mermaid-render] OK — ${okBlocks} mermaid block(s) across ${okFiles} file(s) render cleanly.`);
+log(`[check-mermaid-render] OK — ${okBlocks} mermaid block(s) across ${okFiles} file(s) with diagrams render cleanly.`);
 process.exit(0);
