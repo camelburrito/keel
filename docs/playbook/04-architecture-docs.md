@@ -52,10 +52,12 @@ The citation hook and value parsers both assume the doc's _structure_ is sound �
 
 - **Links + anchors resolve** — `[text](./other.md)` to a real file; `[text](#anchor)` and `[text](./other.md#anchor)` to a real heading, slugged with GitHub's exact algorithm (so an editor-valid link that 404s on GitHub is caught).
 - **Cited paths exist** — any inline `` `code` `` span that is a fully-qualified repo path (real top-level dir + source extension, incl. the `file.ext:42` line-reference form) must name a file on disk. Base-relative shorthand and generated/ephemeral build outputs are skipped.
-- **Mermaid renders on GitHub** — node and pipe-delimited edge labels are scanned for `\n` (use `<br/>`), `&&` (renders as an HTML entity), and raw `<tag>`s other than `<br/>` (GitHub drops them).
+- **Mermaid renders on GitHub** — the full set of GitHub-renderer traps grounded against the real parser: in a node or pipe-delimited edge label, a `\n` (use `<br/>`), `&&` (renders as an HTML entity), a raw `<tag>` other than `<br/>` (GitHub drops it), or a backslash-escaped quote `\"` (mermaid has no `\"` escape — use `#quot;`); a `.` inside a `-. dotted .->` edge label (the `.->` close token lexes on the first `.`); a `;` in any `sequenceDiagram` line (a statement separator); and a `classDef`/`style` that sets a `fill:` but no text `color:` (GitHub's dark theme paints light text on the light fill — illegible).
 - **Footer present** — every doc except `README.md` carries a `Last updated` line.
 
 Strict-zero from day 1: the carve-out for "broken link, will fix later" IS the bug. The judgment half of the contract — readable intros, content-named sections, a diagram per subsystem, grounded claims — can't be mechanized and lives in [`templates/_AUTHORING.md`](../../templates/_AUTHORING.md) + the pre-PR checklist there.
+
+> **The ratchet is a heuristic, not a full parse — the authoritative mermaid check is a real render.** `archDocIntegrity` text-scans for known trap classes; it cannot prove a diagram renders. Twice now a clean ratchet has shipped diagrams that broke on GitHub: four parse-aborting diagrams slipped a pre-render ratchet, and an entire fleet of diagrams went illegible in dark mode before the `classDef`-color rule existed. When you touch diagrams — or before you trust a new trap rule — extract every ` ```mermaid ` block and run it through the real engine (`mermaid.parse()` via jsdom, or `npx @mermaid-js/mermaid-cli`). "Looks fine in mermaid.live" is not "renders on GitHub," and a green ratchet is not a guarantee. When a new trap surfaces, **ground the rule against the real parser first**, then add it to `findMermaidTraps`/`findContrastTraps` and a row here.
 
 ---
 
