@@ -63,18 +63,20 @@ function expand(pattern) {
 }
 
 // ── extract ```mermaid blocks with their 1-based start line ──────────────────
-// Opens on `\b` (word boundary), not `\s*$`, so an info-string fence like
-// ```` ```mermaid foo ```` — which GitHub renders as language=mermaid — is still
-// captured (it would otherwise escape the gate). An unterminated fence (opened,
-// never closed) is reported as a failure: GitHub swallows the rest of the doc
-// into the code block, a real render bug.
+// Opens on `mermaid` followed by whitespace or end-of-line — exactly GitHub's
+// GFM info-string rule (the fence language is the first whitespace-delimited
+// token). So ```` ```mermaid foo ```` (token = `mermaid`, GitHub renders it) IS
+// captured, while ```` ```mermaid-foo ```` (token = `mermaid-foo`, GitHub does
+// NOT render it) is correctly skipped. An unterminated fence (opened, never
+// closed) is reported as a failure: GitHub swallows the rest of the doc into the
+// code block, a real render bug.
 function extractBlocks(file) {
   const lines = readFileSync(file, 'utf8').split('\n');
   const blocks = [];
   let inBlock = false, start = 0, buf = [];
   for (let i = 0; i < lines.length; i++) {
     const l = lines[i];
-    if (!inBlock && /^```mermaid\b/.test(l)) { inBlock = true; start = i + 1; buf = []; continue; }
+    if (!inBlock && /^```mermaid(\s|$)/.test(l)) { inBlock = true; start = i + 1; buf = []; continue; }
     if (inBlock && /^```\s*$/.test(l)) { inBlock = false; blocks.push({ line: start, src: buf.join('\n') }); continue; }
     if (inBlock) buf.push(l);
   }
@@ -143,7 +145,13 @@ for (const file of files) {
       okBlocks++;
     } catch (e) {
       fileBroken = true;
-      failures.push({ file, line: b.line, message: (e?.message ?? String(e)).split('\n').slice(0, 3).join(' ') });
+      const msg = e?.message ?? String(e);
+      // mermaid reports "Parse error on line N" relative to the block source;
+      // the block source begins on the line AFTER the fence (b.line), so the doc
+      // line is b.line + N. Fall back to the fence line if no inner line is given.
+      const inner = msg.match(/line (\d+)/i);
+      const docLine = inner ? b.line + Number(inner[1]) : b.line;
+      failures.push({ file, line: docLine, message: msg.split('\n').slice(0, 3).join(' ') });
     }
   }
   if (!fileBroken) { okFiles++; log(`  ✓ ${file} (${blocks.length} block${blocks.length === 1 ? '' : 's'})`); }
