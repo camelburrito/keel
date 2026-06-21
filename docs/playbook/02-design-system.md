@@ -17,13 +17,16 @@ Four mandates compose the system. Each is enforced structurally (ratchets), not 
 The four mandates govern how design values flow *through* the codebase — but they say nothing about where the values themselves come from. `tokens.json` is the source of truth *for the code*; it is not where the design is *decided*. A design surface is decided in a **design tool**, and the tool — not a developer's eyeballing — is the authority for the palette, the type scale, elevation, and the interaction-affordance rules. `tokens.json` is the **materialization** of that design, encoded for codegen.
 
 ```
-design tool (Stitch)  ─►  design.md  ─►  tokens.json  ─►  per-platform codegen
- (the design system)      (committed     (encoded for     (CSS vars · Swift · …)
-                           text spec)      the code)
+design.md  ─►  design tool (Stitch)  ─►  tokens.json  ─►  per-platform codegen
+(committed     (ingests the spec &       (encoded for     (CSS vars · Swift · …)
+ hand-authored  renders the system)       the code)
+ spec)
 
 reconcile (◄): tokens.json must always agree with the design source on its
-left; on conflict, the design tool wins. The flow is one-way — never hand-edit
-tokens.json to diverge without changing the design tool / design.md first.
+left (design.md + the rendered system); on conflict, the design source wins.
+The flow is one-way — and design.md is hand-authored, never exported back out
+of the tool — so never hand-edit tokens.json to diverge without changing
+design.md / the design tool first.
 ```
 
 ### Stitch as the canonical design tool
@@ -32,7 +35,7 @@ tokens.json to diverge without changing the design tool / design.md first.
 
 1. **The design system lives in Stitch.** A named design system (palette, type scale, spacing, elevation, component rules) is created and iterated in the tool. Stitch can **ingest a `design.md`** (a plain-text design spec) to create a design system, **apply** that system to generated screens, and **generate screen variants** so you can preview a real surface before any code exists. The `design.md` is the durable, reviewable, version-control-friendly bridge between the visual tool and `tokens.json`.
 2. **The design system governs a specific scope.** Reconcile token values against the tool for: **palette / colors**, **the type scale** (sizes, weights, case — e.g. an uppercase small-label style at a fixed size/weight), **spacing & radii**, **elevation** (e.g. a hard offset shadow), and **interaction-affordance rules** (e.g. a fixed border width + press-offset on buttons). When a value in `tokens.json` disagrees with the tool, the tool wins — update `tokens.json` to match, then codegen. Expect this to be a translation, not a mechanical copy: a design tool typically models a simpler palette (often one light/dark mode at a time) than your full token set with its dark-mode swap block (§ 7), so treat the tool's values as the authoritative *starting point* that your richer token structure encodes.
-3. **The design system does NOT govern everything.** Things the tool leaves unspecified — a one-off per-icon pixel size, a specific surface's bespoke offset — are governed by **local convention** (sibling-consistency: match the size its peer elements already use) and the **Off-Grid Mandate** (§ 1, Mandate 3) escape: a named constant with a `// Design-intent constant — <reason> (see GH #<issue>)` comment. Don't invent a token for these, and don't pretend the design tool dictated them.
+3. **The design system does NOT govern everything.** Things the tool leaves unspecified — a one-off per-icon pixel size, a specific surface's bespoke offset — are governed by **local convention** (sibling-consistency: match the size its peer elements already use) and the **Off-Grid Mandate** (§ 1, Mandate 3) escape — a named constant carrying the Mandate-3 design-intent comment. Don't invent a token for these, and don't pretend the design tool dictated them.
 
 ### Direction of flow is one-way
 
