@@ -7,7 +7,7 @@ Direction of flow is one-way: **design tool → `design.md` → `tokens.json` �
 ## Steps
 
 1. **Define or edit the system in the tool.** In Stitch, create the design system (or edit the existing one) — palette, type scale, spacing/radii, elevation, component rules. Iterate on real screens: generate a screen (or variants) and `apply` the system so you preview an actual surface before writing any code.
-2. **Capture it as `design.md`.** Keep a plain-text design spec at `design.md` (or `docs/design.md`) as the durable, reviewable bridge. Stitch can **ingest a `design.md`** to (re)create the system and can **emit** the system's values — use whichever direction fits, but commit the `design.md` so the design system is version-controlled, not trapped in a tool's UI.
+2. **Capture it as `design.md`.** Keep a plain-text design spec at `design.md` (or `docs/design.md`) as the durable, reviewable bridge — **you author and commit it**; it is the version-controlled source, not a tool export. Stitch can **ingest a `design.md`** to (re)create the system; there is no reverse operation that exports a `design.md` back out of the tool, which is exactly why the committed `design.md` — not the tool's UI — is the durable truth. (Read the system's concrete values off its rendered design in the next step.)
 3. **Read the system's values.** Pull the concrete values the design system specifies: hex colors, the type scale (size / weight / case / line-height / tracking), spacing & radii, elevation (shadow offset / blur / color), and affordance rules (border width, press-offset, etc.).
 4. **Reconcile into `tokens.json`.** For each value:
    - If `tokens.json` already has a token that matches → use it (no change).
