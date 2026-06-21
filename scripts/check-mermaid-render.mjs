@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // scripts/check-mermaid-render.mjs — authoritative mermaid render check.
+// Keep in parity with chorz scripts/check-mermaid-render.mjs (the reference impl).
 //
 // The `archDocIntegrity` ratchet (from @camelburrito/ratchet-kit) text-scans for
 // KNOWN mermaid trap classes — it is a heuristic, not a parse. This helper is the
