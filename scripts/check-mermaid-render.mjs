@@ -70,6 +70,10 @@ function expand(pattern) {
 // NOT render it) is correctly skipped. An unterminated fence (opened, never
 // closed) is reported as a failure: GitHub swallows the rest of the doc into the
 // code block, a real render bug.
+// Known limitation: GFM also permits up-to-3-space-indented fences and ≥4-backtick
+// fences; those are not matched here (none exist in the corpus, and the open+close
+// regexes stay internally consistent). Diagrams always use a bare, column-0,
+// 3-backtick ```mermaid fence.
 function extractBlocks(file) {
   const lines = readFileSync(file, 'utf8').split('\n');
   const blocks = [];
@@ -146,11 +150,16 @@ for (const file of files) {
     } catch (e) {
       fileBroken = true;
       const msg = e?.message ?? String(e);
-      // mermaid reports "Parse error on line N" relative to the block source;
-      // the block source begins on the line AFTER the fence (b.line), so the doc
-      // line is b.line + N. Fall back to the fence line if no inner line is given.
+      // mermaid reports "… on line N" relative to the block source (1-based).
+      // b.line is the FENCE line, so source line N maps to doc line b.line + N.
+      // This is a best-effort HINT — mermaid's N is parser-relative and not always
+      // the exact physical line (the flowchart lexer can inflate it) — so clamp it
+      // into the block (never past the closing fence); the raw "line N" stays in the
+      // message for exactness. The /line (\d+)/i first-match is safe: mermaid emits
+      // the "… on line N" prefix before any echoed source that might contain "line".
       const inner = msg.match(/line (\d+)/i);
-      const docLine = inner ? b.line + Number(inner[1]) : b.line;
+      const blockLines = b.src.split('\n').length;
+      const docLine = inner ? Math.min(b.line + Number(inner[1]), b.line + blockLines) : b.line;
       failures.push({ file, line: docLine, message: msg.split('\n').slice(0, 3).join(' ') });
     }
   }
