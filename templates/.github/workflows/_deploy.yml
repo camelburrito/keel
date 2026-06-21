@@ -51,7 +51,7 @@ jobs:
               - 'package-lock.json'
             server:
               - 'functions/**'
-              - 'shared-cf-utils/**'
+              - 'packages/cf-utils/**'
 
   deploy-client:
     needs: detect-changes

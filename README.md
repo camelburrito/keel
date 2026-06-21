@@ -16,7 +16,7 @@ Private engineering baseline for production apps under `camelburrito/`.
 
 **`scripts/`** — agnostic build/CI/audit scripts (parametrized): `ci-local.sh` skeleton, `gen-strings.mjs`, `gen-tokens.mjs`, `audit-cloud-logging-pii.mjs`, `predeploy-pack-cf-utils.sh`.
 
-**`recipes/`** — "how to add X" guides (new ratchet, new architecture doc, new CF, new locale, new environment).
+**`recipes/`** — "how to add X" guides (new ratchet, new architecture doc, new CF, new locale, new environment) plus [upstream-an-improvement.md](recipes/upstream-an-improvement.md), the app-agnostic contribution gate.
 
 **`checklists/`** — pre-launch, pre-merge, pre-deploy checklists.
 
