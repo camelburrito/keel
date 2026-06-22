@@ -26,7 +26,7 @@ App-agnostic engineering baseline for production apps under `camelburrito/`.
 
 - Source is available under the [PolyForm Noncommercial License](LICENSE) — free for any noncommercial use; commercial/business use is not permitted (see [License](#license)).
 - Agnostic packages publish to **GitHub Packages** as `@camelburrito/*`. Consuming projects add `.npmrc` with a GitHub PAT and `npm install` normally.
-- Templates, playbooks, recipes, and checklists are **copied** at bootstrap time (a project's own copy is allowed to drift; pulling updates is a manual `keel-refresh.sh` step that shows a diff).
+- `templates/` is **copied** at bootstrap (`bootstrap.sh` rsyncs it in; a project's own copy is allowed to drift). The playbook, recipes, and checklists are **reference** — read in place or browsed on GitHub, not stamped into the project.
 
 ## Bootstrapping a new project
 

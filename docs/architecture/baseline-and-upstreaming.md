@@ -3,52 +3,54 @@
 **Status:** stable
 **Last updated:** 2026-06-21
 
-keel is a **standalone, app-agnostic engineering baseline** — a playbook, a set of scaffolds, and two vendored packages that every new production project starts from. It names no downstream project; any app, current or future, is just a consumer. A project draws from keel in two ways (files **copied** at bootstrap, packages **published** and installed), and improvements flow **back** into keel through an agnosticism gate that strips every app-specific identifier before a pattern is generalized. This doc is the map of those three flows.
+keel is a **standalone, app-agnostic engineering baseline** — a playbook, a set of scaffolds, and two vendored packages that every new production project starts from. It names no downstream project; any app, current or future, is just a consumer. A project draws from keel three ways — its `templates/` scaffolds **copied** in at bootstrap, its `packages/` **published** and installed as versioned dependencies, and its playbook, recipes, and checklists **read as reference** — and improvements flow **back** into keel through an agnosticism gate that strips every app-specific identifier before a pattern is generalized. This doc maps how those pieces fit and how patterns flow both directions.
 
 ```mermaid
 flowchart LR
-    PB["docs/playbook — methodology"]
+    TPL["templates — scaffolds"]
     PKG["packages — cf-utils, ratchet-kit"]
-    TPL["templates, recipes, checklists, scripts"]
+    REF["playbook, recipes, checklists — reference"]
     PROJ["a consuming project"]
     TPL -->|"copied by bootstrap.sh"| PROJ
-    PB -->|"copied by bootstrap.sh"| PROJ
     PKG -->|"published as @camelburrito/* on GitHub Packages"| PROJ
-    PROJ -->|"generalized pattern, app-agnostic"| PB
+    REF -.->|"read in place / browsed"| PROJ
+    PROJ -->|"generalized pattern, app-agnostic"| REF
     classDef src fill:#dbeafe,color:#1e293b
     classDef dst fill:#dcfce7,color:#14532d
-    class PB,PKG,TPL src
+    class TPL,PKG,REF src
     class PROJ dst
 ```
 
 ## The artifact layers
 
-keel is six top-level directories plus a bootstrap entry point. Each layer has one job and one distribution mechanism.
+keel is six top-level directories plus a bootstrap entry point. Each layer has one job and one distribution mechanism (copied, published, or reference — see the next section).
 
-- **`docs/playbook/`** — methodology docs, one per system (auth, design system, CI/CD, observability, testing, ratchets, …). Each captures the *why*, the structural assertions a project must satisfy, and the generic shape of the pattern. Indexed by [`docs/playbook/00-index.md`](../playbook/00-index.md). **Copied** at bootstrap.
+- **`docs/playbook/`** — methodology docs, one per system (auth, design system, CI/CD, observability, testing, ratchets, …). Each captures the *why*, the structural assertions a project must satisfy, and the generic shape of the pattern. Indexed by [`docs/playbook/00-index.md`](../playbook/00-index.md). **Reference** — read in place / browsed on GitHub.
 - **`packages/`** — the only executable, truly-agnostic code, published to GitHub Packages as `@camelburrito/<pkg>`. Two packages today: `cf-utils` (a logger with a layered PII-redaction pipeline, plus `writeWithAudit`, idempotency, rate-limit, and validation helpers) and `ratchet-kit` (shared helpers + a library of configurable strict-zero ratchet templates, exported from `packages/ratchet-kit/src/index.ts`). **Published**, not copied.
-- **`templates/`** — empty scaffolds copied into a new project: POSIX-bash githooks, a deny-all `firestore.rules`, base `tsconfig.json` / `eslint.config.js` / `vitest.config.ts`, parametrized GitHub Actions workflows, and the architecture-doc authoring contract [`templates/_AUTHORING.md`](../../templates/_AUTHORING.md). **Copied** at bootstrap.
-- **`recipes/`** — task-shaped "how to add X" guides (a ratchet, an architecture doc, a Cloud Function, a locale, an environment), plus [`recipes/upstream-an-improvement.md`](../../recipes/upstream-an-improvement.md), the contribution gate. **Copied** for reference.
-- **`checklists/`** — pre-merge, pre-deploy, and pre-launch checklists. **Copied** for reference.
-- **`scripts/`** — parametrized build/CI/audit scripts (a local-CI mirror skeleton, codegen, a PII-log auditor, the mermaid render check). **Copied** at bootstrap.
-- **`bootstrap.sh`** — the entry point that stamps a new project from the layers above.
+- **`templates/`** — empty scaffolds copied into a new project: POSIX-bash githooks, a deny-all `firestore.rules`, base `tsconfig.json` / `eslint.config.js` / `vitest.config.ts`, parametrized GitHub Actions workflows, a `templates/scripts/` and `templates/docs/` tree, and the architecture-doc authoring contract [`templates/_AUTHORING.md`](../../templates/_AUTHORING.md). **Copied** at bootstrap.
+- **`recipes/`** — task-shaped "how to add X" guides (a ratchet, an architecture doc, a Cloud Function, a locale, an environment), plus [`recipes/upstream-an-improvement.md`](../../recipes/upstream-an-improvement.md), the contribution gate. **Reference**.
+- **`checklists/`** — pre-merge, pre-deploy, and pre-launch checklists. **Reference**.
+- **`scripts/`** — keel's own build/CI/audit scripts (a local-CI mirror skeleton, codegen, a PII-log auditor, the mermaid render check). **Reference** — a project gets its own scaffolded scripts from `templates/scripts/`, not from here.
+- **`bootstrap.sh`** — the entry point that stamps a new project (it rsyncs `templates/`).
 
 ## How a project consumes keel
 
-Two mechanisms, chosen per layer by how the artifact is meant to evolve.
+Three mechanisms, chosen per layer by how the artifact is meant to evolve.
 
-**Copy** (playbook, templates, recipes, checklists, scripts). At bootstrap, `bootstrap.sh` stamps these into the new project. A project's copy is **allowed to drift** — it owns its scaffolds and edits them freely. Pulling later keel improvements is a deliberate, diff-reviewed refresh step, never an automatic overwrite. This is right for artifacts a project must own and customize.
+**Copy** (`templates/` only). At bootstrap, `bootstrap.sh` rsyncs `templates/` into the new project — githooks, base configs, parametrized workflows, and the `templates/scripts/` + `templates/docs/` skeletons. A project's copy is **allowed to drift** — it owns its scaffolds and edits them freely. This is right for artifacts a project must own and customize.
 
-**Publish** (packages only). The two packages are installed as versioned dependencies from GitHub Packages, so a project picks up fixes with a normal version bump and never forks the logic. This is right for code whose correctness is shared — a PII-redaction pipeline or a ratchet implementation should improve everywhere at once, not drift per-project.
+**Publish** (`packages/` only). The two packages are installed as versioned dependencies from GitHub Packages, so a project picks up fixes with a normal version bump and never forks the logic. This is right for code whose correctness is shared — a PII-redaction pipeline or a ratchet implementation should improve everywhere at once, not drift per-project.
+
+**Reference** (playbook, recipes, checklists, the top-level scripts). These are **not** stamped into a project — the bootstrap output points you to them, and you read them in place or browse them on GitHub, copying a specific piece by hand only if you want to adapt it. This keeps the methodology a living, single-source document rather than N drifting forks.
 
 ```mermaid
 flowchart TD
-    START["bootstrap.sh my-new-app"] --> COPY["copy playbook, templates,<br/>recipes, checklists, scripts"]
+    START["bootstrap.sh my-new-app"] --> COPY["rsync templates/ into the project"]
     COPY --> NPM["add .npmrc — install @camelburrito/* from GitHub Packages"]
-    NPM --> OWN["project owns its scaffolds — free to drift"]
-    OWN --> REFRESH["later keel updates: manual, diff-reviewed refresh"]
+    NPM --> REF["consult playbook, recipes, checklists in place"]
+    REF --> OWN["project owns its scaffolds — free to drift"]
     classDef step fill:#e0e7ff,color:#312e81
-    class START,COPY,NPM,OWN,REFRESH step
+    class START,COPY,NPM,REF,OWN step
 ```
 
 ## The upstreaming loop
