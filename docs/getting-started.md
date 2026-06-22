@@ -49,7 +49,7 @@ You'll see something like:
 ```
 [keel] Bootstrapping my-app at /Users/you/projects/my-app
 [keel] Replacing <APP> placeholders with 'my-app'
-[keel] Installing @camelburrito/cf-utils + @camelburrito/ratchet-kit
+[keel] Installing @camelburrito/cf-utils + @camelburrito/ratchet-kit (latest)
 [keel] Done. Project ready at: /Users/you/projects/my-app
 
 Next steps:
