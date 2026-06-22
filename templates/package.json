@@ -24,12 +24,12 @@
     "prebuild": "npm run tokens:check && npm run strings:check"
   },
   "dependencies": {
-    "@camelburrito/cf-utils": "^0.1.0",
+    "@camelburrito/cf-utils": "latest",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@camelburrito/ratchet-kit": "^0.1.0",
+    "@camelburrito/ratchet-kit": "latest",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^5.0.0",

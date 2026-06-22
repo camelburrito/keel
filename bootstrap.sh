@@ -136,11 +136,16 @@ else
 //npm.pkg.github.com/:_authToken=$GITHUB_PACKAGES_PAT
 EOF
 
-  # 6. Install the agnostic packages
-  echo "[keel] Installing @camelburrito/cf-utils + @camelburrito/ratchet-kit"
+  # 6. Install the agnostic packages.
+  # Unversioned → installs the current published release of each (npm saves a
+  # caret range of whatever resolved, so the new project is reproducible after).
+  # Don't pin a fixed minor here: the packages are pre-1.0, and a `^0.1.0`-style
+  # pin both excludes every later 0.x (npm caret on 0.x is locked to that minor)
+  # and goes stale on the next bump. Matches the --no-install hint above.
+  echo "[keel] Installing @camelburrito/cf-utils + @camelburrito/ratchet-kit (latest)"
   npm install \
-    --save '@camelburrito/cf-utils@^0.1.0' \
-    --save-dev '@camelburrito/ratchet-kit@^0.1.0' 2>&1 | tail -5 || {
+    --save '@camelburrito/cf-utils' \
+    --save-dev '@camelburrito/ratchet-kit' 2>&1 | tail -5 || {
       echo "" >&2
       echo "WARN: npm install of @camelburrito packages failed." >&2
       echo "If you see 404, the packages may not be published yet — check:" >&2
