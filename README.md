@@ -1,12 +1,14 @@
 # keel
 
-Private engineering baseline for production apps under `camelburrito/`.
+App-agnostic engineering baseline for production apps under `camelburrito/`.
 
 `keel` is a **standalone, app-agnostic playbook + scaffolds + vendored packages** repository. It's the foundation every new production project starts from. Patterns are proven in real production projects, generalized here so they carry no app-specific detail, and flow back into keel through an app-agnostic upstreaming process (see [recipes/upstream-an-improvement.md](recipes/upstream-an-improvement.md)). keel names no specific downstream project; any project (current or future) is just a consumer.
 
 ## What's here
 
 **`docs/playbook/`** — methodology docs (one per system). These capture the WHY, the structural assertions you must satisfy, and the generic pattern itself. They are self-contained and app-agnostic — the only paths they contain are generic conventions (e.g. `functions/src/`).
+
+**`docs/architecture/`** — how keel *itself* is built (the baseline's own architecture: artifact layers, copy-vs-publish distribution, the upstreaming loop). Authored under keel's own [arch-doc convention](docs/playbook/04-architecture-docs.md) and self-validated by it (`scripts/check-arch-docs.mjs`). The playbook documents patterns for a consuming project; these document keel.
 
 **`templates/`** — empty scaffolds that get copied into new projects at bootstrap time. POSIX-bash githooks, deny-all `firestore.rules`, base `tsconfig.json` / `eslint.config.js` / `vitest.config.ts`, parametrized GHA workflows, `.env.{staging,prod}.example` field conventions.
 
@@ -22,9 +24,9 @@ Private engineering baseline for production apps under `camelburrito/`.
 
 ## Distribution model
 
-- This repo is **private** (`camelburrito/keel`).
+- Source is available under the [PolyForm Noncommercial License](LICENSE) — free for any noncommercial use; commercial/business use is not permitted (see [License](#license)).
 - Agnostic packages publish to **GitHub Packages** as `@camelburrito/*`. Consuming projects add `.npmrc` with a GitHub PAT and `npm install` normally.
-- Templates, playbooks, recipes, and checklists are **copied** at bootstrap time (a project's own copy is allowed to drift; pulling updates is a manual `keel-refresh.sh` step that shows a diff).
+- `templates/` is **copied** at bootstrap (`bootstrap.sh` rsyncs it in; a project's own copy is allowed to drift). The playbook, recipes, and checklists are **reference** — read in place or browsed on GitHub, not stamped into the project.
 
 ## Bootstrapping a new project
 
@@ -44,3 +46,7 @@ When a consuming project adds a significant new architecture (notifications, And
 ## Status
 
 Bootstrapped 2026-06-04. **12 of 13 playbook entries 🟢 drafted** (01..12; 13 🟡 outlined). `@camelburrito/ratchet-kit` (v0.7.3 — 23 ratchet templates) and `@camelburrito/cf-utils` (v0.3.1 — logger, audit, rate-limit, idempotency, validation) are both implemented in `packages/`. See [docs/playbook/00-index.md](docs/playbook/00-index.md) for the full table of contents and per-entry status.
+
+## License
+
+keel is **source-available** under the [PolyForm Noncommercial License 1.0.0](LICENSE) — you may use, modify, and share it for **any noncommercial purpose** (personal and hobby projects, research, education, nonprofits, public-sector and other noncommercial organizations). **Commercial / business use is not permitted** under this license. A noncommercial license is not an OSI "open source" license (which forbids field-of-use limits), so keel carries no open-source badge by design; the intent is to let others learn from and build on it for non-business use.

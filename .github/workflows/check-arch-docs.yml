@@ -1,0 +1,41 @@
+# Dogfood gate for scripts/check-arch-docs.mjs.
+# Runs @camelburrito/ratchet-kit's archDocIntegrity over keel's OWN
+# docs/architecture/*.md on every PR/push that touches an arch doc, the script,
+# or the ratchet — so the reference repo self-applies the same structural gate
+# (links/anchors/cited-paths/mermaid/footer) it ships for consuming projects.
+# See docs/playbook/04-architecture-docs.md Tier 3. The companion
+# check-docs-mermaid workflow covers the real-render half.
+#
+# ratchet-kit ships CJS with a gitignored dist/, so the package is built here
+# before the script require()s it.
+
+name: Check Arch Docs (integrity)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/architecture/**/*.md'
+      - 'scripts/check-arch-docs.mjs'
+      - 'packages/ratchet-kit/**'
+      - '.github/workflows/check-arch-docs.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/architecture/**/*.md'
+      - 'scripts/check-arch-docs.mjs'
+      - 'packages/ratchet-kit/**'
+      - '.github/workflows/check-arch-docs.yml'
+
+jobs:
+  integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build ratchet-kit (dist/ is gitignored)
+        run: cd packages/ratchet-kit && npm ci && npm run build
+      - name: Run archDocIntegrity over docs/architecture
+        run: node scripts/check-arch-docs.mjs
