@@ -1,6 +1,6 @@
 {
   "name": "@camelburrito/ratchet-kit",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "description": "Configurable strict-zero ratchet templates for keel-derived projects.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -32,6 +32,6 @@
     "node": ">=20"
   },
   "keywords": ["ratchet", "strict-zero", "design-system", "ci", "keel"],
-  "license": "UNLICENSED",
+  "license": "MIT",
   "private": false
 }
