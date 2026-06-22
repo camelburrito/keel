@@ -35,3 +35,4 @@ If the token appears in multiple platforms, all of them must consume it from the
 ## Related playbook
 
 - [02-design-system.md](../docs/playbook/02-design-system.md) — token mandate + 4-layer hierarchy
+- [sync-design-system-from-a-design-tool.md](sync-design-system-from-a-design-tool.md) — where token *values* come from (the design tool is upstream of this recipe)

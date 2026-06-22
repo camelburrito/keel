@@ -42,7 +42,7 @@ The discipline has three properties that earn their keep:
 │       └── <task-N-artifacts>          — any task-specific files (sub-plans, audits, fixtures)
 ├── seeds/                              — captured ideas with trigger conditions (gsd:plant-seed)
 ├── todos/                              — gsd:add-todo capture (lighter-weight than phase)
-├── stitch-specs/                       — UI design-spec inputs (gsd:ui-phase)
+├── stitch-specs/                       — UI design-spec inputs (gsd:ui-phase; see 02-design-system.md § "The design source of truth")
 └── handoffs/                           — context-handoff docs at session boundaries
 ```
 
