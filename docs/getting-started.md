@@ -179,7 +179,7 @@ npm run deploy:prod
 
 ## Step 8 — Wire your first ratchet
 
-Keel ships `@camelburrito/ratchet-kit` with 23 graduated ratchets (as of v0.7.3). The templated `.githooks/pre-commit` already runs a default set. To add one of your own:
+Keel ships `@camelburrito/ratchet-kit` with 23 graduated ratchets (as of v0.7.4). The templated `.githooks/pre-commit` already runs a default set. To add one of your own:
 
 ```typescript
 // src/__tests__/no-bare-foo-in-features.test.ts

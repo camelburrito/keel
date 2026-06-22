@@ -1,6 +1,6 @@
 {
   "name": "@camelburrito/cf-utils",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Agnostic Cloud Functions utilities: PII-redacting logger, writeWithAudit, rate limit, idempotency, validation, wrapHandler.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -2,6 +2,11 @@
 
 All notable changes to `@camelburrito/cf-utils` are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Semver.
 
+## [0.3.2] — 2026-06-22
+
+### Changed
+- Relicensed from PolyForm Noncommercial 1.0.0 to **MIT** (`license` field + bundled `LICENSE` file). No code or public-API change.
+
 ## [0.3.1] — 2026-06-21
 
 ### Changed — domain-neutral defaults

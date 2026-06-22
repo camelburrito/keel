@@ -45,7 +45,7 @@ When a consuming project adds a significant new architecture (notifications, And
 
 ## Status
 
-Bootstrapped 2026-06-04. **12 of 13 playbook entries 🟢 drafted** (01..12; 13 🟡 outlined). `@camelburrito/ratchet-kit` (v0.7.3 — 23 ratchet templates) and `@camelburrito/cf-utils` (v0.3.1 — logger, audit, rate-limit, idempotency, validation) are both implemented in `packages/`. See [docs/playbook/00-index.md](docs/playbook/00-index.md) for the full table of contents and per-entry status.
+Bootstrapped 2026-06-04. **12 of 13 playbook entries 🟢 drafted** (01..12; 13 🟡 outlined). `@camelburrito/ratchet-kit` (v0.7.4 — 23 ratchet templates) and `@camelburrito/cf-utils` (v0.3.2 — logger, audit, rate-limit, idempotency, validation) are both implemented in `packages/`. See [docs/playbook/00-index.md](docs/playbook/00-index.md) for the full table of contents and per-entry status.
 
 ## License
 
