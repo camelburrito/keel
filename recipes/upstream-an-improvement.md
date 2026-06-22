@@ -8,7 +8,7 @@ This is a **continuous process**: every consuming project is expected to upstrea
 
 You changed something in a consuming project. Ask: *Would the next project, in a different domain, want this exact thing?*
 
-- **Yes, verbatim** → it belongs in `packages/` (published code) or `scripts/` / `templates/` (copied scaffolds).
+- **Yes, verbatim** → it belongs in `packages/` (published code) or `templates/` (copied scaffolds, e.g. `templates/scripts/`).
 - **Yes, as a pattern** → it belongs in `docs/playbook/` as methodology + the portable shape.
 - **No — it only makes sense for this app** → it stays in the consuming project. (A ratchet that locks one product's renamed token; a CF specific to one domain.)
 
@@ -53,6 +53,7 @@ A war-story keeps its teaching value **without** the name attached. "One project
 After the keel PR merges, the originating project (and every other consumer) picks the change up the normal way:
 
 - **Packages** → bump the `@camelburrito/<pkg>` version in the project's `package.json` and `npm install`.
-- **Scripts / templates / playbook** → these are copied at bootstrap; pull updates via the project's `keel-refresh.sh` step (which shows a diff before applying, since a project's own copy is allowed to drift).
+- **Templates** → copied at bootstrap, after which the project owns them and may drift; re-pull a later keel change by diffing the relevant `templates/` file against keel by hand.
+- **Playbook, recipes, checklists, top-level scripts** → reference, not stamped into a project; read them in place or browse them on GitHub, copying a specific piece by hand only if you adapt it.
 
 The loop closes: the project that learned the lesson now consumes the generalized version it contributed.

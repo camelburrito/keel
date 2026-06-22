@@ -23,7 +23,7 @@ flowchart LR
 
 ## The artifact layers
 
-keel is six top-level directories plus a bootstrap entry point. Each layer has one job and one distribution mechanism (copied, published, or reference — see the next section).
+keel is six artifact layers plus a bootstrap entry point. Each layer has one job and one distribution mechanism (copied, published, or reference — see the next section). (The layers map onto a handful of top-level directories — `docs/` holds both the playbook and these architecture docs.)
 
 - **`docs/playbook/`** — methodology docs, one per system (auth, design system, CI/CD, observability, testing, ratchets, …). Each captures the *why*, the structural assertions a project must satisfy, and the generic shape of the pattern. Indexed by [`docs/playbook/00-index.md`](../playbook/00-index.md). **Reference** — read in place / browsed on GitHub.
 - **`packages/`** — the only executable, truly-agnostic code, published to GitHub Packages as `@camelburrito/<pkg>`. Two packages today: `cf-utils` (a logger with a layered PII-redaction pipeline, plus `writeWithAudit`, idempotency, rate-limit, and validation helpers) and `ratchet-kit` (shared helpers + a library of configurable strict-zero ratchet templates, exported from `packages/ratchet-kit/src/index.ts`). **Published**, not copied.
