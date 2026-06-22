@@ -2,7 +2,7 @@
 
 The design tool (the worked example here is [Stitch](https://stitch.withgoogle.com/), named the same way this playbook names Firebase / Playwright / mermaid — a general tool, not coupled to any product) is the **upstream authority** for the visual design system: palette, type scale, spacing, elevation, and interaction-affordance rules. `tokens.json` is the **downstream materialization** of that design, encoded for per-platform codegen. This recipe is how you bring the two into agreement.
 
-Direction of flow is one-way: **design tool → `design.md` → `tokens.json` → codegen.** Never hand-edit `tokens.json` to diverge from the design system without changing the design system first.
+Direction of flow is one-way: **`design.md` → design tool → `tokens.json` → codegen.** `design.md` is hand-authored and ingested into the tool (never exported back out); the tool renders the system; `tokens.json` is the encoded materialization. Never hand-edit `tokens.json` to diverge from the design system without changing `design.md` / the design tool first.
 
 ## Steps
 
