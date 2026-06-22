@@ -24,7 +24,7 @@ App-agnostic engineering baseline for production apps under `camelburrito/`.
 
 ## Distribution model
 
-- Source is available under the [PolyForm Noncommercial License](LICENSE) — free for any noncommercial use; commercial/business use is not permitted (see [License](#license)).
+- Licensed under the [MIT License](LICENSE) — free to use, modify, and distribute, including commercially (see [License](#license)).
 - Agnostic packages publish to **GitHub Packages** as `@camelburrito/*`. Consuming projects add `.npmrc` with a GitHub PAT and `npm install` normally.
 - `templates/` is **copied** at bootstrap (`bootstrap.sh` rsyncs it in; a project's own copy is allowed to drift). The playbook, recipes, and checklists are **reference** — read in place or browsed on GitHub, not stamped into the project.
 
@@ -49,4 +49,4 @@ Bootstrapped 2026-06-04. **12 of 13 playbook entries 🟢 drafted** (01..12; 13 
 
 ## License
 
-keel is **source-available** under the [PolyForm Noncommercial License 1.0.0](LICENSE) — you may use, modify, and share it for **any noncommercial purpose** (personal and hobby projects, research, education, nonprofits, public-sector and other noncommercial organizations). **Commercial / business use is not permitted** under this license. A noncommercial license is not an OSI "open source" license (which forbids field-of-use limits), so keel carries no open-source badge by design; the intent is to let others learn from and build on it for non-business use.
+keel is open source under the [MIT License](LICENSE) — you are free to use, modify, and distribute it for **any purpose, including commercially**, with no restriction beyond preserving the copyright and license notice. MIT is one of the most widely adopted [OSI-approved](https://opensource.org/license/mit) open-source licenses; the intent is to let anyone learn from, build on, and ship keel.

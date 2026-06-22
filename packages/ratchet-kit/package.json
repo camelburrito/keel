@@ -32,6 +32,6 @@
     "node": ">=20"
   },
   "keywords": ["ratchet", "strict-zero", "design-system", "ci", "keel"],
-  "license": "UNLICENSED",
+  "license": "MIT",
   "private": false
 }

@@ -38,6 +38,6 @@
     "node": ">=20"
   },
   "keywords": ["firebase", "cloud-functions", "pii", "logger", "audit", "keel"],
-  "license": "UNLICENSED",
+  "license": "MIT",
   "private": false
 }
