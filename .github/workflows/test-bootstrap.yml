@@ -1,0 +1,34 @@
+# Regression gate for bootstrap.sh.
+# Runs `scripts/test-bootstrap.sh` on every PR/push that touches the bootstrap
+# surface. Catches the 3 bugs surfaced in the post-publish audit:
+#   - PROJECT_NAME unvalidated for sed-safe shape
+#   - Initial commit triggers pre-commit hook before npm install
+#   - find pattern missed *.py
+# Also catches any future regression in template-copy, sed substitution, or
+# git init.
+
+name: Test Bootstrap
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'bootstrap.sh'
+      - 'templates/**'
+      - 'scripts/test-bootstrap.sh'
+      - '.github/workflows/test-bootstrap.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'bootstrap.sh'
+      - 'templates/**'
+      - 'scripts/test-bootstrap.sh'
+      - '.github/workflows/test-bootstrap.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run test-bootstrap.sh (uses --no-install; no PAT needed)
+        run: bash scripts/test-bootstrap.sh

@@ -1,0 +1,21 @@
+name: Prod Deploy
+
+on:
+  push:
+    branches: [release]
+  # workflow_dispatch lets you manually recover from paths-filter no-ops or
+  # GHA quota cliffs. Always available. See playbook/11-staging-prod-environments.md.
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/_deploy.yml
+    with:
+      project: <APP>-prod
+      environment: prod
+      # always_deploy: true ensures cumulative-state release cuts (large jumps from
+      # main -> release) deploy fully, even when paths-filter's shallow clone
+      # silently no-ops on the large commit jump.
+      always_deploy: true
+    secrets:
+      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY_PROD }}

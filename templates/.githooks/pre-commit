@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Pre-commit hook — runs the ratchet suite + tokens:check + tsc per workspace.
+# Mirrors CI's "Design System Ratchets" step. Skipped during merge/rebase/cherry-pick.
+# See playbook/03-ci-cd.md and playbook/07-ratchet-framework.md.
+
+set -euo pipefail
+
+# Skip during merge/rebase/cherry-pick to avoid mid-conflict false positives.
+if [ -f .git/MERGE_HEAD ] || [ -f .git/REBASE_HEAD ] || [ -f .git/CHERRY_PICK_HEAD ]; then
+  echo "[pre-commit] skipping during merge/rebase/cherry-pick"
+  exit 0
+fi
+
+echo "[pre-commit] running ratchet suite..."
+
+# TODO: enumerate ratchets here. Each one is a vitest run.
+# Keep this list in sync with .github/workflows/test-coverage.yml § Design System Ratchets
+# (defended by ratchet-list-precommit-vs-workflow.test.ts).
+#
+# Example shape:
+# npx vitest run --no-coverage \
+#   src/__tests__/no-inline-style.test.ts \
+#   src/__tests__/no-bare-hex-in-tsx.test.ts \
+#   src/__tests__/no-console-in-source.test.ts \
+#   ...
+
+echo "[pre-commit] running tokens:check..."
+npm run tokens:check
+
+echo "[pre-commit] running strings:check..."
+npm run strings:check
+
+echo "[pre-commit] running tsc --noEmit..."
+npx tsc --noEmit
+# TODO: add per-workspace tsc gates as workspaces appear:
+# (cd functions && npx tsc --noEmit)
+# (cd packages/cf-utils && npx tsc --noEmit)
+
+echo "[pre-commit] OK"

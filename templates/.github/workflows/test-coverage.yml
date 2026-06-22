@@ -1,0 +1,41 @@
+# Test + Coverage workflow. Mirrors scripts/ci-local.sh step-for-step.
+# Drift defended by ratchet `ci-local-mirrors-workflow.test.ts`.
+# See playbook/03-ci-cd.md.
+
+name: Test Coverage
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  ratchets:
+    name: Design System Ratchets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      # TODO: enumerate ratchets here. Each line is one `npx vitest run --no-coverage <path>`.
+      # Keep this list in sync with .githooks/pre-commit (defended by ratchet-list-precommit-vs-workflow).
+      - run: npm run tokens:check
+      - run: npm run strings:check
+      - run: npx tsc --noEmit
+
+  coverage-frontend:
+    name: Frontend Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: ./node_modules/.bin/vitest run --coverage
+      # TODO: chain coverage for packages/cf-utils + functions + functions-<codebase> as workspaces appear.

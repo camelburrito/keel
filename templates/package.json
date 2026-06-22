@@ -1,0 +1,43 @@
+{
+  "_comment": "TODO: replace <APP> with your app slug. Set 'private': true unless this is a publishable lib.",
+  "name": "<APP>",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "test": "vitest run --no-coverage",
+    "test:watch": "vitest",
+    "check:coverage": "./node_modules/.bin/vitest run --coverage",
+    "tokens:gen": "node scripts/gen-tokens.mjs",
+    "tokens:check": "node scripts/gen-tokens.mjs --check",
+    "strings:gen": "node scripts/gen-strings.mjs",
+    "strings:check": "node scripts/gen-strings.mjs --check",
+    "test:pre-release": "npm run check:coverage && npm run test:e2e",
+    "test:e2e": "playwright test",
+    "deploy:staging": "npm run test:pre-release && firebase deploy --project <APP>-staging",
+    "deploy:prod": "npm run test:pre-release && firebase deploy --project <APP>-prod",
+    "postinstall": "git config core.hooksPath .githooks",
+    "prebuild": "npm run tokens:check && npm run strings:check"
+  },
+  "dependencies": {
+    "@camelburrito/cf-utils": "latest",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@camelburrito/ratchet-kit": "latest",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "eslint": "^9.0.0",
+    "typescript": "^5.6.0",
+    "vite": "^6.0.0",
+    "vitest": "^2.0.0",
+    "@playwright/test": "^1.50.0",
+    "firebase-tools": "^15.0.0"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "name": "@camelburrito/ratchet-kit",
+  "version": "0.7.3",
+  "description": "Configurable strict-zero ratchet templates for keel-derived projects.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build && npm run test"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/camelburrito/keel.git",
+    "directory": "packages/ratchet-kit"
+  },
+  "peerDependencies": {
+    "vitest": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.0.0",
+    "@vitest/coverage-v8": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": ["ratchet", "strict-zero", "design-system", "ci", "keel"],
+  "license": "UNLICENSED",
+  "private": false
+}

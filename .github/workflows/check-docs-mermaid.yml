@@ -1,0 +1,41 @@
+# Dogfood gate for scripts/check-mermaid-render.mjs.
+# Renders every ```mermaid block in keel's own docs through the REAL mermaid
+# engine on every PR/push that touches a doc or the helper — so the reference
+# repo can never ship a diagram that 404s ("Unable to render rich display") on
+# GitHub, the exact class the archDocIntegrity ratchet's heuristic can't prove.
+# See docs/playbook/04-architecture-docs.md § Tier 3.
+#
+# keel has no root package.json, so mermaid + jsdom are installed transiently
+# (both pure-JS, no headless browser — NOT mermaid-cli, whose puppeteer dep
+# makes this unreliable).
+
+name: Check Docs (mermaid render)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**/*.md'
+      - 'examples/**/*.md'
+      - 'scripts/check-mermaid-render.mjs'
+      - '.github/workflows/check-docs-mermaid.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/**/*.md'
+      - 'examples/**/*.md'
+      - 'scripts/check-mermaid-render.mjs'
+      - '.github/workflows/check-docs-mermaid.yml'
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install mermaid + jsdom (transient — keel has no root package.json)
+        run: npm init -y >/dev/null 2>&1 && npm i --no-fund --no-audit mermaid jsdom
+      - name: Render every mermaid block in docs/
+        run: node scripts/check-mermaid-render.mjs 'docs/**/*.md'

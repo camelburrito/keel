@@ -1,0 +1,16 @@
+name: Staging Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/_deploy.yml
+    with:
+      project: <APP>-staging
+      environment: staging
+      always_deploy: false
+    secrets:
+      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY_STAGING }}
