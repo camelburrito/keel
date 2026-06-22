@@ -76,7 +76,7 @@ A consuming project enforces the **reverse** direction with its own `playbook-co
 
 - **No downstream identifiers anywhere in keel.** The whole baseline is generic — no app name, no app-specific path or domain type. Enforced procedurally by the agnosticism gate ([`recipes/upstream-an-improvement.md`](../../recipes/upstream-an-improvement.md)) and by review. A leak here defeats keel's reason to exist: the next project bootstrapped from it would inherit another app's vocabulary.
 - **Patterns are descriptive, not aspirational.** A playbook entry or package ships only after the pattern is proven in production. keel documents what works, not what might.
-- **Shared-correctness code is published; ownable artifacts are copied.** Logic whose correctness is common (packages) flows by version bump so it improves everywhere at once; scaffolds a project must customize (templates, playbook) are copied and allowed to drift.
+- **Shared-correctness code is published; ownable scaffolds are copied; methodology is reference.** Logic whose correctness is common (packages) flows by version bump so it improves everywhere at once; the scaffolds a project must customize (`templates/`) are copied and allowed to drift; the playbook, recipes, and checklists are read in place so the methodology stays a single source rather than N drifting forks.
 - **keel's own architecture docs are self-validated.** The docs under `docs/architecture/` are gated by the same `archDocIntegrity` ratchet keel ships — keel eats its own dog food. See the runbook below.
 
 ## Pitfalls
