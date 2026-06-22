@@ -1,7 +1,7 @@
 ---
 target: 5
 branch: feat/design-source-of-truth-stitch
-iteration: 7
+iteration: 9
 last_run: 2026-06-21
 status: in_progress
 clean_reviews_in_row: 0
@@ -9,29 +9,30 @@ max_iterations: 10
 depth: deep
 last_commit: pending
 last_finding_count: 1
-last_finding_fingerprint: design-md-casing-vs-stitch
+last_finding_fingerprint: cross-repo-stitch-specs-unlinked
 stuck_iterations: 0
 last_fixes_applied:
-  - "SHOULD-FIX: docs used lowercase design.md but the real Stitch artifact is DESIGN.md (verified vs live MCP tool schemas); standardized all 10 occurrences to DESIGN.md"
-  - "NIT: Step 2 title 'Capture it' fought the Step-1 'ingest it (Step 2)' pointer; retitled 'Capture / ingest DESIGN.md'"
-  - "NIT: reworded the add-a-token 'First, don't' section reference to 'don't-by-default' to drop the trailing-period quibble"
+  - "SHOULD-FIX: 01-gsd-workflow.md stitch-specs/ mention sat unlinked to the new authoritative section; added a cross-link parenthetical"
+  - "NIT: add-a-token.md Related-playbook lacked a reciprocal link to the sync recipe; added it"
+  - "NIT: playbook iteration-hygiene used 'prune' vs the canonical/recipe 'delete'; aligned to 'delete'"
+  - "NIT: diagram caption restated the don't-diverge rule already in the subsection; trimmed the redundant clause"
 ---
 # Ralph state for keel PR #5 (design source-of-truth → tokens / Stitch)
 
 ## Iteration log
-- iter-01: Stitch "emit" overclaim SHOULD-FIX + 3 NITs. Fixed.
-- iter-02: diagram implied tool→DESIGN.md export + off-grid 3-place NIT. Fixed.
-- iter-03: 3 reviewers; content clean; Step 1/2 ordering NIT. Fixed.
-- iter-04: recipe intro line 5 reversed node order (distinct location). Fixed; grep-verified all flows.
-- iter-05: 2 reviewers both 0/0/0 (15-assertion + 5-statement independent re-derivations).
-- iter-06: mechanical reviewer clean; adopter-walkthrough caught the real DESIGN.md casing mismatch
-  (Stitch's actual filename is uppercase — verified vs live MCP tool descriptions) + 2 NITs. All fixed.
+- iter-01..04: emit overclaim, diagram export implication, step ordering, line-5 reversed order. Fixed.
+- iter-05: 2 reviewers 0/0/0.
+- iter-06: DESIGN.md casing (verified vs live Stitch schemas) + 2 NITs. Fixed.
+- iter-07: 2 reviewers 0/0/0 (DESIGN.md rename complete + holistic).
+- iter-08: mechanical + content clean; cross-repo lens caught the unlinked stitch-specs/ mention
+  (SHOULD-FIX) + asymmetric add-a-token link + prune/delete verb + thrice-stated one-way rule (NITs). Fixed.
 
 ## Last review summary
-Standardized lowercase design.md → DESIGN.md (Stitch's real artifact name, confirmed in the
-upload_design_md / create_design_system_from_design_md tool schemas). Diagram alignment preserved
-(9 chars either way). Step 2 retitled to match its pointer. 0 lowercase left; 0 leaks; flow consistent.
+Cross-repo coherence closed: 01-gsd-workflow stitch-specs now cross-links the new section; add-a-token
+back-links the sync recipe; iteration-hygiene verb unified to 'delete'; diagram caption de-duplicated.
+The 3 core content files have been clean from multiple independent reviewers since iter-05/07.
 
 ## Stop conditions
-Active. Each iteration has found a DISTINCT real issue (no fingerprint repeat → not stuck). Next:
-iter-07 final confirmation (2 simultaneous independent deep reviewers); status → complete if both 0/0/0.
+Active. All review lenses now exercised (agnosticism, Stitch accuracy, consistency, flow, links,
+conventions, completeness, usability, mechanical, cross-repo, nit-hunt). Next: iter-09 final
+confirmation (2 reviewers incl. the 2 newly-touched files). status → complete if both 0/0/0.

@@ -24,9 +24,8 @@ DESIGN.md  ─►  design tool (Stitch)  ─►  tokens.json  ─►  per-platfo
 
 reconcile (◄): tokens.json must always agree with the design source on its
 left (DESIGN.md + the rendered system); on conflict, the design source wins.
-The flow is one-way — and DESIGN.md is hand-authored, never exported back out
-of the tool — so never hand-edit tokens.json to diverge without changing
-DESIGN.md / the design tool first.
+The flow is one-way — DESIGN.md is hand-authored, never exported back out of
+the tool.
 ```
 
 ### Stitch as the canonical design tool
@@ -43,7 +42,7 @@ The tool (and its `DESIGN.md`) is **upstream**; `tokens.json` is **downstream**.
 
 ### Iteration hygiene
 
-When you iterate mocks in the design tool, **prune superseded versions immediately** once the replacement is confirmed. A design-tool project littered with stale variants stops being a single source of truth — the next person can't tell which screen is current. One current truth per surface, in the tool and in `tokens.json` alike.
+When you iterate mocks in the design tool, **delete superseded versions immediately** once the replacement is confirmed. A design-tool project littered with stale variants stops being a single source of truth — the next person can't tell which screen is current. One current truth per surface, in the tool and in `tokens.json` alike.
 
 ### The tool is an input; the ratchets are the enforcement
 
