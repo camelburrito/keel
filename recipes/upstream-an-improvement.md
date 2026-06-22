@@ -33,9 +33,10 @@ A war-story keeps its teaching value **without** the name attached. "One project
 
 | Kind of improvement | Lands in |
 |---|---|
-| Reusable runtime/code utility | `packages/<pkg>/src/` (+ CHANGELOG entry, semver bump) |
-| Build / CI / audit script | `scripts/<name>` (parametrized, no hardcoded paths) |
-| Copy-at-bootstrap scaffold | `templates/<path>` |
+| Reusable runtime/code utility | `packages/<pkg>/src/` (+ CHANGELOG entry, semver bump) — published |
+| Build / CI / audit script a project should run | `templates/scripts/<name>` (parametrized, no hardcoded paths) — copied at bootstrap |
+| keel-internal tooling script (a gate keel runs on itself) | `scripts/<name>` — reference, not copied into projects |
+| Copy-at-bootstrap scaffold | `templates/<path>` — copied |
 | A pattern, principle, or structural assertion | `docs/playbook/<NN>-<system>.md` |
 | A new "how to add X" guide | `recipes/<name>.md` |
 
