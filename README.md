@@ -12,7 +12,7 @@ App-agnostic engineering baseline for production apps under `camelburrito/`.
 
 **`templates/`** — empty scaffolds that get copied into new projects at bootstrap time. POSIX-bash githooks, deny-all `firestore.rules`, base `tsconfig.json` / `eslint.config.js` / `vitest.config.ts`, parametrized GHA workflows, `.env.{staging,prod}.example` field conventions.
 
-**`packages/`** — truly agnostic code, published to GitHub Packages as `@camelburrito/<pkg>`:
+**`packages/`** — truly agnostic code, published to npmjs (public) as `@camelburrito/<pkg>`:
 - `cf-utils` — logger with 7-layer PII redact pipeline, `writeWithAudit`, `idempotency`, `rateLimit`, `validation`, `wrapHandler` + `OAUTH_SECRET_FIELDS`
 - `ratchet-kit` — shared ratchet helpers + 23 structural ratchet templates as configurable functions
 
@@ -25,7 +25,7 @@ App-agnostic engineering baseline for production apps under `camelburrito/`.
 ## Distribution model
 
 - Licensed under the [MIT License](LICENSE) — free to use, modify, and distribute, including commercially (see [License](#license)).
-- Agnostic packages publish to **GitHub Packages** as `@camelburrito/*`. Consuming projects add `.npmrc` with a GitHub PAT and `npm install` normally.
+- Agnostic packages publish to **npmjs** (public) as `@camelburrito/*` — consuming projects `npm install` them anonymously, no token or `.npmrc` needed. (They're also mirrored to GitHub Packages for anyone who prefers that registry.)
 - `templates/` is **copied** at bootstrap (`bootstrap.sh` rsyncs it in; a project's own copy is allowed to drift). The playbook, recipes, and checklists are **reference** — read in place or browsed on GitHub, not stamped into the project.
 
 ## Bootstrapping a new project

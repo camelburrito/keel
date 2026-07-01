@@ -9,15 +9,16 @@
 #   2. Copies templates/ into the new project (dotfiles included)
 #   3. chmod +x .githooks scripts
 #   4. Initializes git + wires core.hooksPath -> .githooks
-#   5. Writes .npmrc bound to $GITHUB_PACKAGES_PAT
-#   6. Installs @camelburrito/cf-utils + @camelburrito/ratchet-kit
-#   7. Prints next-step TODOs
+#   5. Installs @camelburrito/cf-utils + @camelburrito/ratchet-kit (from npmjs)
+#   6. Prints next-step TODOs
 #
 # Prerequisites:
-#   - $GITHUB_PACKAGES_PAT set to a personal access token with `read:packages`
-#     scope on github.com/camelburrito
 #   - npm >= 9, node >= 20
 #   - git
+#
+# The @camelburrito/* packages are public on npmjs.org, so no auth or token is
+# needed to install them. (They're also mirrored to GitHub Packages; see the
+# README if you prefer to consume from there instead.)
 
 set -euo pipefail
 
@@ -48,20 +49,9 @@ if [[ ! "$PROJECT_NAME" =~ ^[a-z][a-z0-9-]*$ ]]; then
   exit 1
 fi
 
-# Pre-flight: PAT required for npm install of @camelburrito/* packages.
-# Skipped when --no-install (the CI regression test runs without a PAT).
-if [[ "$NO_INSTALL" -eq 0 && -z "${GITHUB_PACKAGES_PAT:-}" ]]; then
-  echo "ERROR: GITHUB_PACKAGES_PAT env var is not set." >&2
-  echo "" >&2
-  echo "Create a GitHub personal access token with 'read:packages' scope at" >&2
-  echo "  https://github.com/settings/tokens" >&2
-  echo "then export it:" >&2
-  echo "  export GITHUB_PACKAGES_PAT=ghp_xxxxxxxxxxxx" >&2
-  echo "" >&2
-  echo "Or pass --no-install to skip the npm install step (you'll need to" >&2
-  echo "write .npmrc + run npm install yourself afterwards)." >&2
-  exit 1
-fi
+# No auth pre-flight needed — the @camelburrito/* packages are public on npmjs,
+# so `npm install` pulls them anonymously. `--no-install` still lets you skip
+# the install step entirely (e.g. offline bootstrap or the CI regression test).
 
 if [[ -e "$PROJECT_DIR" ]]; then
   echo "ERROR: $PROJECT_DIR already exists. Refusing to overwrite." >&2
@@ -126,22 +116,16 @@ fi
 git commit -m "Initial bootstrap from keel" --no-verify >/dev/null
 
 if [[ "$NO_INSTALL" -eq 1 ]]; then
-  echo "[keel] --no-install: skipping .npmrc + npm install steps."
-  echo "       Write .npmrc + run \`npm install @camelburrito/cf-utils @camelburrito/ratchet-kit\`"
-  echo "       yourself when ready (see templates/.npmrc.template)."
+  echo "[keel] --no-install: skipping npm install."
+  echo "       Run \`npm install @camelburrito/cf-utils @camelburrito/ratchet-kit\`"
+  echo "       yourself when ready — they're public on npmjs, no token needed."
 else
-  # 5. Write .npmrc bound to the PAT
-  cat > .npmrc <<EOF
-@camelburrito:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=$GITHUB_PACKAGES_PAT
-EOF
-
-  # 6. Install the agnostic packages.
+  # 5. Install the agnostic packages from npmjs (public — no auth needed).
   # Unversioned → installs the current published release of each (npm saves a
   # caret range of whatever resolved, so the new project is reproducible after).
   # Don't pin a fixed minor here: the packages are pre-1.0, and a `^0.1.0`-style
   # pin both excludes every later 0.x (npm caret on 0.x is locked to that minor)
-  # and goes stale on the next bump. Matches the --no-install hint above.
+  # and goes stale on the next bump.
   echo "[keel] Installing @camelburrito/cf-utils + @camelburrito/ratchet-kit (latest)"
   npm install \
     --save '@camelburrito/cf-utils' \
@@ -149,8 +133,7 @@ EOF
       echo "" >&2
       echo "WARN: npm install of @camelburrito packages failed." >&2
       echo "If you see 404, the packages may not be published yet — check:" >&2
-      echo "  https://github.com/camelburrito/keel/packages" >&2
-      echo "If you see 401, your PAT may lack read:packages scope." >&2
+      echo "  https://www.npmjs.com/package/@camelburrito/ratchet-kit" >&2
       echo "You can re-run npm install after fixing." >&2
     }
 fi
@@ -169,6 +152,3 @@ echo "  3. Create your two Firebase projects (${PROJECT_NAME}-staging + ${PROJEC
 echo "  4. Review docs/architecture/README.md and write your first arch doc when first subsystem stabilizes"
 echo "  5. Browse the playbook at https://github.com/camelburrito/keel/tree/main/docs/playbook"
 echo "  6. Pick your first phase via /gsd:new-project (or your equivalent)"
-echo ""
-echo "Note: .npmrc was written with your GITHUB_PACKAGES_PAT. .npmrc is gitignored."
-echo "      In CI, set the secret as GITHUB_PACKAGES_PAT and recreate .npmrc per-build."

@@ -1,6 +1,12 @@
 # Publish workflow for keel packages.
-# Publishes @camelburrito/cf-utils and @camelburrito/ratchet-kit to GitHub Packages
-# when a version tag is pushed (e.g., `git tag cf-utils-v0.2.0 && git push --tags`).
+# Publishes @camelburrito/cf-utils and @camelburrito/ratchet-kit when a version
+# tag is pushed (e.g., `git tag cf-utils-v0.2.0 && git push --tags`).
+#
+# Each package is published to BOTH registries:
+#   - GitHub Packages (npm.pkg.github.com) — auth via the built-in GITHUB_TOKEN.
+#   - npmjs.org (public) — the canonical anonymous-install path. Requires an
+#     NPM_TOKEN repo secret (an npmjs automation/granular token with publish
+#     rights on the @camelburrito scope and 2FA bypass enabled).
 #
 # Per-package tag prefixes let you ship them independently:
 #   cf-utils-v*.*.*    -> publish packages/cf-utils
@@ -38,12 +44,31 @@ jobs:
             *) echo "Unknown tag prefix: $TAG"; exit 1 ;;
           esac
 
-      - name: Install + build + test + publish
+      - name: Install + build + test
         working-directory: ${{ steps.pkg.outputs.dir }}
         run: |
           npm ci
           npm run build
           npm test
-          npm publish
+
+      # 1) GitHub Packages — uses the scoped registry configured by setup-node above.
+      - name: Publish to GitHub Packages
+        working-directory: ${{ steps.pkg.outputs.dir }}
+        run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 2) npmjs.org (public). Reconfigure npm auth for the public registry, then
+      #    publish there too. --registry overrides the package.json
+      #    `publishConfig.registry` (npm.pkg.github.com); --access public because
+      #    scoped packages default to private on npmjs.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Publish to npmjs.org (public)
+        working-directory: ${{ steps.pkg.outputs.dir }}
+        run: npm publish --registry=https://registry.npmjs.org --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
