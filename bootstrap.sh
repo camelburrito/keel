@@ -138,7 +138,7 @@ else
     }
 fi
 
-# 7. Print next-step TODOs
+# 6. Print next-step TODOs
 echo ""
 echo "[keel] Done. Project ready at: $PROJECT_DIR"
 echo ""
