@@ -20,7 +20,7 @@ Agnostic Cloud Functions utilities for the keel-derived projects.
 npm install @camelburrito/cf-utils
 ```
 
-Requires `.npmrc` with GitHub Packages auth — see [templates/.npmrc.template](../../templates/.npmrc.template).
+Public on npmjs — installs anonymously, no token or `.npmrc` needed. (Also mirrored to GitHub Packages.)
 
 ## Domain-PII scrubber slot
 
@@ -39,4 +39,4 @@ Semver. Breaking changes require a major bump. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Publishing
 
-Publishes to GitHub Packages on tag push (`v*.*.*`) via `.github/workflows/publish.yml` in the keel repo.
+Publishes to npmjs (public) and GitHub Packages on tag push (`cf-utils-v*.*.*`) via `.github/workflows/publish.yml` in the keel repo.

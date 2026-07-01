@@ -54,7 +54,7 @@ grep -q "\"name\": \"$PROJECT_NAME\"" "$PROJECT_DIR/package.json" || { echo "FAI
 grep -q "$PROJECT_NAME-staging" "$PROJECT_DIR/.github/workflows/staging-deploy.yml" || { echo "FAIL: staging workflow not substituted"; exit 1; }
 grep -q "$PROJECT_NAME-prod" "$PROJECT_DIR/.github/workflows/prod-deploy.yml" || { echo "FAIL: prod workflow not substituted"; exit 1; }
 
-# --no-install: .npmrc must NOT exist (would carry PAT).
+# --no-install: bootstrap no longer writes any .npmrc — assert it stays absent.
 [[ ! -f "$PROJECT_DIR/.npmrc" ]] || { echo "FAIL: .npmrc unexpectedly written under --no-install"; exit 1; }
 
 # --no-install: node_modules must NOT exist.
