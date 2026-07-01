@@ -1,6 +1,18 @@
 # Publish workflow for keel packages.
-# Publishes @camelburrito/cf-utils and @camelburrito/ratchet-kit to GitHub Packages
-# when a version tag is pushed (e.g., `git tag cf-utils-v0.2.0 && git push --tags`).
+# Publishes @camelburrito/cf-utils and @camelburrito/ratchet-kit when a version
+# tag is pushed (e.g., `git tag ratchet-kit-v0.7.5 && git push --tags`).
+#
+# Each package is published to BOTH registries:
+#   - npmjs.org (public) — the canonical anonymous-install path. Published FIRST
+#     so a GitHub Packages hiccup can't strand the canonical registry a version
+#     behind. Requires an NPM_TOKEN repo secret (an npmjs *Automation* token —
+#     automation tokens bypass 2FA on publish — with publish rights on the
+#     @camelburrito scope).
+#   - GitHub Packages (npm.pkg.github.com) — a mirror, published second with
+#     continue-on-error via the built-in GITHUB_TOKEN.
+#
+# The tag version must match the package's package.json version — a guard step
+# fails fast otherwise (bump package.json before tagging).
 #
 # Per-package tag prefixes let you ship them independently:
 #   cf-utils-v*.*.*    -> publish packages/cf-utils
@@ -22,28 +34,61 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
+
+      - name: Determine package dir + version from tag
+        id: pkg
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          case "$TAG" in
+            cf-utils-v*)    echo "dir=packages/cf-utils"    >> "$GITHUB_OUTPUT"; echo "ver=${TAG#cf-utils-v}"    >> "$GITHUB_OUTPUT" ;;
+            ratchet-kit-v*) echo "dir=packages/ratchet-kit" >> "$GITHUB_OUTPUT"; echo "ver=${TAG#ratchet-kit-v}" >> "$GITHUB_OUTPUT" ;;
+            *) echo "Unknown tag prefix: $TAG"; exit 1 ;;
+          esac
+
+      # Fail fast if the tag version doesn't match package.json — otherwise the
+      # publish would hit a confusing "version already exists" conflict mid-run.
+      - name: Assert tag version matches package.json
+        working-directory: ${{ steps.pkg.outputs.dir }}
+        run: |
+          PKG_VER="$(node -p "require('./package.json').version")"
+          if [ "$PKG_VER" != "${{ steps.pkg.outputs.ver }}" ]; then
+            echo "Tag version (${{ steps.pkg.outputs.ver }}) != package.json version ($PKG_VER)." >&2
+            echo "Bump ${{ steps.pkg.outputs.dir }}/package.json to match the tag before pushing it." >&2
+            exit 1
+          fi
+
+      # npmjs (public) — the canonical registry. setup-node writes the npmjs auth
+      # line; --registry overrides package.json publishConfig (npm.pkg.github.com)
+      # and --access public because scoped packages default to private on npmjs.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install + build + test
+        working-directory: ${{ steps.pkg.outputs.dir }}
+        run: |
+          npm ci
+          npm run build
+          npm test
+
+      - name: Publish to npmjs.org (public, canonical)
+        working-directory: ${{ steps.pkg.outputs.dir }}
+        run: npm publish --registry=https://registry.npmjs.org --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # GitHub Packages mirror. continue-on-error so a mirror failure can't fail
+      # the release after the canonical npmjs publish already succeeded.
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           registry-url: 'https://npm.pkg.github.com'
           scope: '@camelburrito'
 
-      - name: Determine package dir from tag
-        id: pkg
-        run: |
-          TAG="${GITHUB_REF#refs/tags/}"
-          case "$TAG" in
-            cf-utils-v*)    echo "dir=packages/cf-utils"    >> "$GITHUB_OUTPUT" ;;
-            ratchet-kit-v*) echo "dir=packages/ratchet-kit" >> "$GITHUB_OUTPUT" ;;
-            *) echo "Unknown tag prefix: $TAG"; exit 1 ;;
-          esac
-
-      - name: Install + build + test + publish
+      - name: Publish to GitHub Packages (mirror)
+        continue-on-error: true
         working-directory: ${{ steps.pkg.outputs.dir }}
-        run: |
-          npm ci
-          npm run build
-          npm test
-          npm publish
+        run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

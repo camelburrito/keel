@@ -16,13 +16,8 @@ Before you run anything, make sure the following are installed locally:
   git config --global user.email you@example.com
   ```
 - **Firebase CLI** — `npm install -g firebase-tools` (≥ 13.0). Needed for emulators + deploys.
-- **GitHub Personal Access Token** with `read:packages` scope (for the agnostic packages keel installs from GitHub Packages):
-  1. Visit [github.com/settings/tokens](https://github.com/settings/tokens) → "Generate new token (classic)"
-  2. Scope: tick `read:packages` only (no other scopes needed for bootstrap)
-  3. Export it in your shell rc file:
-     ```bash
-     export GITHUB_PACKAGES_PAT=ghp_xxxxxxxxxxxxxxxxxxxx
-     ```
+
+That's all — the agnostic `@camelburrito/*` packages keel installs are **public on npmjs**, so no access token or registry auth is needed to bootstrap.
 
 ## Step 1 — Run the bootstrap script
 
@@ -41,8 +36,7 @@ What this does, in order:
 3. Replaces every `<APP>` placeholder in the templates with your slug (`my-app`) — package name, deploy targets, env-file names.
 4. `git init -b main` + wires `core.hooksPath` to `.githooks/`.
 5. Creates an initial commit (with `--no-verify` since `node_modules/` doesn't exist yet).
-6. Writes `.npmrc` bound to your `$GITHUB_PACKAGES_PAT`.
-7. Runs `npm install` — pulls `@camelburrito/cf-utils` + `@camelburrito/ratchet-kit` from GitHub Packages.
+6. Runs `npm install` — pulls `@camelburrito/cf-utils` + `@camelburrito/ratchet-kit` from npmjs (public, no token needed).
 
 You'll see something like:
 
@@ -62,13 +56,12 @@ Next steps:
 
 **Troubleshoot:**
 - Slug invalid (`ERROR: project-name must match ^[a-z][a-z0-9-]*$`) — slugs must start with a lowercase letter and contain only lowercase letters, digits, hyphens.
-- `npm install` 401 — your PAT either expired or doesn't have `read:packages`. Regenerate it.
-- `npm install` 404 — the packages may have been retired or renamed. Check [github.com/camelburrito/keel/packages](https://github.com/camelburrito/keel/packages).
-- Want to bootstrap without internet / without a PAT? Pass `--no-install`:
+- `npm install` 404 — the packages may have been retired or renamed. Check [npmjs.com/package/@camelburrito/ratchet-kit](https://www.npmjs.com/package/@camelburrito/ratchet-kit).
+- Want to bootstrap without internet? Pass `--no-install`:
   ```bash
   bash ~/projects/keel/bootstrap.sh my-app . --no-install
   ```
-  This skips the `.npmrc` write + `npm install`. Run them yourself when ready.
+  This skips `npm install`. Run it yourself when ready.
 
 ## Step 2 — Create your two Firebase projects
 

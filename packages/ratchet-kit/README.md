@@ -83,4 +83,4 @@ Semver. Breaking changes require a major bump.
 
 ## Publishing
 
-Publishes to GitHub Packages on tag push (`v*.*.*`) via `.github/workflows/publish.yml` in the keel repo.
+Publishes to npmjs (public) and GitHub Packages on tag push (`ratchet-kit-v*.*.*`) via `.github/workflows/publish.yml` in the keel repo.

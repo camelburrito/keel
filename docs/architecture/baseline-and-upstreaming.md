@@ -1,7 +1,7 @@
 # The baseline and its consumers
 
 **Status:** stable
-**Last updated:** 2026-06-21
+**Last updated:** 2026-06-30
 
 keel is a **standalone, app-agnostic engineering baseline** — a playbook, a set of scaffolds, and two vendored packages that every new production project starts from. It names no downstream project; any app, current or future, is just a consumer. A project draws from keel three ways — its `templates/` scaffolds **copied** in at bootstrap, its `packages/` **published** and installed as versioned dependencies, and its playbook, recipes, and checklists **read as reference** — and improvements flow **back** into keel through an agnosticism gate that strips every app-specific identifier before a pattern is generalized. This doc maps how those pieces fit and how patterns flow both directions.
 
@@ -12,7 +12,7 @@ flowchart LR
     REF["playbook, recipes, checklists — reference"]
     PROJ["a consuming project"]
     TPL -->|"copied by bootstrap.sh"| PROJ
-    PKG -->|"published as @camelburrito/* on GitHub Packages"| PROJ
+    PKG -->|"published to npmjs as @camelburrito/*"| PROJ
     REF -.->|"read in place / browsed"| PROJ
     PROJ -->|"generalized pattern, app-agnostic"| REF
     classDef src fill:#dbeafe,color:#1e293b
@@ -26,7 +26,7 @@ flowchart LR
 keel is six artifact layers plus a bootstrap entry point. Each layer has one job and one distribution mechanism (copied, published, or reference — see the next section). (The layers map onto a handful of top-level directories — `docs/` holds both the playbook and these architecture docs.)
 
 - **`docs/playbook/`** — methodology docs, one per system (auth, design system, CI/CD, observability, testing, ratchets, …). Each captures the *why*, the structural assertions a project must satisfy, and the generic shape of the pattern. Indexed by [`docs/playbook/00-index.md`](../playbook/00-index.md). **Reference** — read in place / browsed on GitHub.
-- **`packages/`** — the only executable, truly-agnostic code, published to GitHub Packages as `@camelburrito/<pkg>`. Two packages today: `cf-utils` (a logger with a layered PII-redaction pipeline, plus `writeWithAudit`, idempotency, rate-limit, and validation helpers) and `ratchet-kit` (shared helpers + a library of configurable strict-zero ratchet templates, exported from `packages/ratchet-kit/src/index.ts`). **Published**, not copied.
+- **`packages/`** — the only executable, truly-agnostic code, published to npmjs (public) as `@camelburrito/<pkg>`. Two packages today: `cf-utils` (a logger with a layered PII-redaction pipeline, plus `writeWithAudit`, idempotency, rate-limit, and validation helpers) and `ratchet-kit` (shared helpers + a library of configurable strict-zero ratchet templates, exported from `packages/ratchet-kit/src/index.ts`). **Published**, not copied.
 - **`templates/`** — empty scaffolds copied into a new project: POSIX-bash githooks, a deny-all `firestore.rules`, base `tsconfig.json` / `eslint.config.js` / `vitest.config.ts`, parametrized GitHub Actions workflows, a `templates/scripts/` and `templates/docs/` tree, and the architecture-doc authoring contract [`templates/_AUTHORING.md`](../../templates/_AUTHORING.md). **Copied** at bootstrap.
 - **`recipes/`** — task-shaped "how to add X" guides (a ratchet, an architecture doc, a Cloud Function, a locale, an environment), plus [`recipes/upstream-an-improvement.md`](../../recipes/upstream-an-improvement.md), the contribution gate. **Reference**.
 - **`checklists/`** — pre-merge, pre-deploy, and pre-launch checklists. **Reference**.
@@ -39,14 +39,14 @@ Three mechanisms, chosen per layer by how the artifact is meant to evolve.
 
 **Copy** (`templates/` only). At bootstrap, `bootstrap.sh` rsyncs `templates/` into the new project — githooks, base configs, parametrized workflows, and the `templates/scripts/` + `templates/docs/` skeletons. A project's copy is **allowed to drift** — it owns its scaffolds and edits them freely. This is right for artifacts a project must own and customize.
 
-**Publish** (`packages/` only). The two packages are installed as versioned dependencies from GitHub Packages, so a project picks up fixes with a normal version bump and never forks the logic. This is right for code whose correctness is shared — a PII-redaction pipeline or a ratchet implementation should improve everywhere at once, not drift per-project.
+**Publish** (`packages/` only). The two packages are installed as versioned dependencies from npmjs (public — no token or `.npmrc` needed), so a project picks up fixes with a normal version bump and never forks the logic. This is right for code whose correctness is shared — a PII-redaction pipeline or a ratchet implementation should improve everywhere at once, not drift per-project.
 
 **Reference** (playbook, recipes, checklists, the top-level scripts). These are **not** stamped into a project — the bootstrap output points you to them, and you read them in place or browse them on GitHub, copying a specific piece by hand only if you want to adapt it. This keeps the methodology a living, single-source document rather than N drifting forks.
 
 ```mermaid
 flowchart TD
     START["bootstrap.sh my-new-app"] --> COPY["rsync templates/ into the project"]
-    COPY --> NPM["add .npmrc — install @camelburrito/* from GitHub Packages"]
+    COPY --> NPM["npm install @camelburrito/* from npmjs (public)"]
     NPM --> REF["consult playbook, recipes, checklists in place"]
     REF --> OWN["project owns its scaffolds — free to drift"]
     classDef step fill:#e0e7ff,color:#312e81
@@ -98,8 +98,8 @@ keel applies its own arch-doc gate to the docs in this directory:
 - **Structural integrity** — `node scripts/check-arch-docs.mjs` runs `archDocIntegrity` from `@camelburrito/ratchet-kit` over `docs/architecture/*.md`: every relative link and `#anchor` resolves, every fully-qualified inline-code path exists on disk, mermaid carries no GitHub-renderer traps, and each doc (except the index) has a `Last updated` footer. The package's `dist/` is gitignored, so CI builds `packages/ratchet-kit` before running the script.
 - **Real mermaid render** — `node scripts/check-mermaid-render.mjs 'docs/**/*.md'` renders every diagram through the real engine, catching the parse-aborting and dark-mode-illegible cases the heuristic can't. Already wired for all of `docs/` by [`.github/workflows/check-docs-mermaid.yml`](../../.github/workflows/check-docs-mermaid.yml).
 
-Bootstrapping and publishing (the consumer-facing side) live in [`README.md`](../../README.md): `bootstrap.sh my-new-app` to stamp a project, and a package's own `npm publish` to GitHub Packages to ship a fix to all consumers.
+Bootstrapping and publishing (the consumer-facing side) live in [`README.md`](../../README.md): `bootstrap.sh my-new-app` to stamp a project, and a tag-triggered `npm publish` to npmjs (and GitHub Packages) to ship a fix to all consumers.
 
 ---
 
-**Last updated:** 2026-06-21 — initial keel self-architecture doc (dogfoods the `04-architecture-docs.md` convention).
+**Last updated:** 2026-06-30 — packages now dual-published to npmjs (public, anonymous install); consumption no longer requires a GitHub PAT.
