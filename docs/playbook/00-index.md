@@ -27,6 +27,7 @@ A new entry is added every time a consuming project ships a significant new arch
 | 11 | [Staging & prod environments](11-staging-prod-environments.md) | 🟢 drafted |
 | 12 | [Notifications](12-notifications.md) | 🟢 drafted |
 | 13 | [System architecture & scale](13-system-architecture-and-scale.md) | 🟡 outlined |
+| 14 | [Server view-model layer (SDUI-lite)](14-server-view-model-layer.md) | 🟡 outlined |
 
 ## Future entries (placeholders)
 
